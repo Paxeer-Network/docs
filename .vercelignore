@@ -1,0 +1,6 @@
+.git
+node_modules
+.source
+.turbo
+*.md
+!README.md
