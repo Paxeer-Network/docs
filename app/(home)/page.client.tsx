@@ -1,442 +1,358 @@
-"use client";
+'use client';
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, Search } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { AppleBorderGradient } from "@/components/AppleBorderGradient";
-import { Skiper22 } from "@/components/MicroInteractions";
-import { SquiCircleFilterStatic } from "@/components/SkiperSquiCircleFilterLayout";
 import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  useCarousel,
-} from "@/components/ui/carousel";
+  type ComponentProps,
+  Fragment,
+  type HTMLAttributes,
+  type ReactNode,
+  type RefObject,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
+import { ArrowRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { cva } from 'class-variance-authority';
+import { useTheme } from 'next-themes';
+import dynamic from 'next/dynamic';
 
-export function HeroBackground() {
-  return (
-    <>
-      <SquiCircleFilterStatic />
-      <div
-        className="absolute inset-0 -z-1 opacity-[0.03]"
-        style={{
-          backgroundImage:
-            "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E\")",
-        }}
-      />
-      <div className="absolute left-[15%] top-0 h-full w-px bg-gradient-to-b from-transparent via-fd-border/20 to-transparent" />
-      <div className="absolute right-[15%] top-0 h-full w-px bg-gradient-to-b from-transparent via-fd-border/20 to-transparent" />
-    </>
-  );
-}
+const GrainGradient = dynamic(
+  () => import('@paper-design/shaders-react').then((mod) => mod.GrainGradient),
+  {
+    ssr: false,
+  },
+);
 
-function CellLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="absolute left-4 top-4 z-20 rounded-full border border-fd-border bg-fd-card/80 px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-fd-muted-foreground backdrop-blur-sm">
-      {children}
-    </div>
-  );
-}
+const Dithering = dynamic(
+  () => import('@paper-design/shaders-react').then((mod) => mod.Dithering),
+  {
+    ssr: false,
+  },
+);
 
-export function ComponentShowcase() {
-  return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {/* 1 - MicroInteractions (ETH Swap) */}
-      <div className="relative row-span-2 overflow-hidden rounded-2xl border bg-fd-card shadow-lg">
-        <CellLabel>Token Swap</CellLabel>
-        <div className="flex h-full min-h-[540px] items-center justify-center p-2">
-          <Skiper22 />
-        </div>
-      </div>
-
-      {/* 2 - Apple Border Gradient */}
-      <div className="relative overflow-hidden rounded-2xl border bg-fd-card shadow-lg">
-        <AppleBorderDemo />
-      </div>
-
-      {/* 3 - Squircle SVG Filter */}
-      <div className="relative overflow-hidden rounded-2xl border bg-fd-card shadow-lg">
-        <SquircleDemo />
-      </div>
-
-      {/* 4 - Country Select Dialog */}
-      <div className="relative overflow-hidden rounded-2xl border bg-fd-card shadow-lg lg:col-span-2">
-        <CountrySelectDemo />
-      </div>
-
-      {/* 5 - Carousel Navigation */}
-      <div className="relative overflow-hidden rounded-2xl border bg-fd-card shadow-lg lg:col-span-2">
-        <CarouselDemo />
-      </div>
-
-      {/* 6 - Scrollbar Navigation */}
-      <div className="relative overflow-hidden rounded-2xl border bg-fd-card shadow-lg">
-        <ScrollbarDemo />
-      </div>
-    </div>
-  );
-}
-
-function AppleBorderDemo() {
-  const [active, setActive] = useState(false);
-  return (
-    <div className="relative flex h-full min-h-[260px] flex-col items-center justify-center p-8">
-      <AppleBorderGradient preview={active} intensity="xl" />
-      <CellLabel>Border Gradient</CellLabel>
-      <div className="relative z-10 flex flex-col items-center gap-5">
-        <p className="text-xs font-medium uppercase tracking-[0.15em] text-fd-muted-foreground/50">
-          Apple Intelligence Style
-        </p>
-        <button
-          onClick={() => setActive((x) => !x)}
-          className="rounded-full border bg-fd-secondary px-6 py-2.5 text-sm font-medium text-fd-secondary-foreground transition-colors hover:bg-fd-accent"
-        >
-          {active ? "Deactivate" : "Activate"} Gradient
-        </button>
-        <AnimatePresence>
-          {active && (
-            <motion.p
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -5 }}
-              className="text-xs text-fd-muted-foreground"
-            >
-              Animated border gradient active
-            </motion.p>
-          )}
-        </AnimatePresence>
-      </div>
-    </div>
-  );
-}
-
-function SquircleDemo() {
-  const [filterOn, setFilterOn] = useState(true);
-  return (
-    <div className="relative flex h-full min-h-[260px] flex-col items-center justify-center gap-6 p-8">
-      <CellLabel>Squircle Filter</CellLabel>
-      <svg xmlns="http://www.w3.org/2000/svg" className="absolute bottom-0 left-0" version="1.1">
-        <defs>
-          <filter id="SquiCircleDemoFilter">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
-            <feColorMatrix
-              in="blur"
-              mode="matrix"
-              values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -7"
-              result="goo"
-            />
-            <feBlend in="SourceGraphic" in2="goo" />
-          </filter>
-        </defs>
-      </svg>
-      <p className="text-xs font-medium uppercase tracking-[0.15em] text-fd-muted-foreground/50">
-        SVG Gooey Effect
-      </p>
-      <div className="flex items-center gap-6">
-        <div
-          className="h-20 w-20 rounded-2xl bg-gradient-to-br from-blue-500 to-violet-600 transition-all"
-          style={{ filter: filterOn ? "url(#SquiCircleDemoFilter)" : "none" }}
-        />
-        <div
-          className="h-16 w-16 rounded-2xl bg-gradient-to-br from-fuchsia-500 to-pink-600 transition-all"
-          style={{ filter: filterOn ? "url(#SquiCircleDemoFilter)" : "none" }}
-        />
-      </div>
-      <button
-        onClick={() => setFilterOn((x) => !x)}
-        className="rounded-full border bg-fd-secondary px-4 py-1.5 text-xs font-medium text-fd-secondary-foreground transition-colors hover:bg-fd-accent"
-      >
-        Filter {filterOn ? "ON" : "OFF"}
-      </button>
-    </div>
-  );
-}
-
-type Country = { name: string; code: string; flag: string };
-
-function CountrySelectDemo() {
-  const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
-  const [countries, setCountries] = useState<Country[]>([]);
-  const [search, setSearch] = useState("");
-  const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const fetched = useRef(false);
-
-  const doFetch = useCallback(async () => {
-    if (fetched.current) return;
-    fetched.current = true;
-    setLoading(true);
-    try {
-      const res = await fetch(
-        "https://restcountries.com/v3.1/all?fields=name,cca2,flags",
-      );
-      const data = await res.json();
-      const mapped: Country[] = data
-        .map((c: Record<string, any>) => ({
-          name: c.name.common,
-          code: c.cca2,
-          flag: c.flags.svg,
-        }))
-        .sort((a: Country, b: Country) => a.name.localeCompare(b.name));
-      setCountries(mapped);
-      const region = (navigator.language || "en-US")
-        .split("-")[1]
-        ?.toUpperCase();
-      if (region) {
-        const match = mapped.find((c: Country) => c.code === region);
-        if (match) setSelectedCountry(match);
-      }
-    } catch {
-      /* silent */
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+export function Hero() {
+  const { resolvedTheme } = useTheme();
+  const ref = useRef<HTMLDivElement | null>(null);
+  const visible = useIsVisible(ref);
+  const [showShaders, setShowShaders] = useState(false);
 
   useEffect(() => {
-    doFetch();
-  }, [doFetch]);
+    setTimeout(() => {
+      setShowShaders(true);
+    }, 400);
+  }, []);
 
-  const filtered = useMemo(
-    () =>
-      search
-        ? countries.filter(
-            (c) =>
-              c.name.toLowerCase().includes(search.toLowerCase()) ||
-              c.code.toLowerCase().includes(search.toLowerCase()),
-          )
-        : countries,
-    [countries, search],
-  );
-
-  return (
-    <div className="flex h-full min-h-[280px] flex-col items-center justify-center gap-4 p-8">
-      <CellLabel>Country Select</CellLabel>
-      <p className="text-xs font-medium uppercase tracking-[0.15em] text-fd-muted-foreground/50">
-        Region Picker
-      </p>
-      <button
-        onClick={() => setOpen((x) => !x)}
-        className="flex items-center gap-2 rounded-full border bg-fd-secondary px-4 py-2 transition-colors hover:bg-fd-accent"
-      >
-        {selectedCountry ? (
-          <>
-            <div className="size-6 overflow-hidden rounded-full">
-              <img
-                src={selectedCountry.flag}
-                alt={selectedCountry.name}
-                className="size-full object-cover"
-              />
-            </div>
-            <span className="text-sm">{selectedCountry.name}</span>
-          </>
-        ) : (
-          <span className="text-sm text-fd-muted-foreground">
-            Select region
-          </span>
-        )}
-        <ChevronDown className="size-4 text-fd-muted-foreground" />
-      </button>
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: 10, height: 0 }}
-            animate={{ opacity: 1, y: 0, height: 220 }}
-            exit={{ opacity: 0, y: 10, height: 0 }}
-            className="w-full max-w-xs overflow-hidden rounded-xl border bg-fd-popover shadow-lg"
-          >
-            <div className="flex items-center gap-2 border-b px-3 py-2">
-              <Search className="size-4 text-fd-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-transparent text-sm outline-none"
-              />
-            </div>
-            <div className="h-[176px] overflow-y-auto">
-              {loading ? (
-                <p className="p-4 text-center text-xs text-fd-muted-foreground">
-                  Loading...
-                </p>
-              ) : (
-                filtered.slice(0, 40).map((c) => (
-                  <button
-                    key={c.code}
-                    onClick={() => {
-                      setSelectedCountry(c);
-                      setOpen(false);
-                    }}
-                    className={cn(
-                      "flex w-full items-center gap-3 px-4 py-2 text-left transition-colors hover:bg-fd-accent",
-                      selectedCountry?.code === c.code && "bg-fd-accent",
-                    )}
-                  >
-                    <div className="size-5 overflow-hidden rounded-full">
-                      <img
-                        src={c.flag}
-                        alt=""
-                        className="size-full object-cover"
-                      />
-                    </div>
-                    <span className="text-sm">{c.name}</span>
-                  </button>
-                ))
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-const carouselSlides = [
-  { label: "Smart Contracts", color: "from-blue-600 to-blue-800" },
-  { label: "Argus VM", color: "from-violet-600 to-violet-800" },
-  { label: "IBC Channels", color: "from-fuchsia-600 to-fuchsia-800" },
-  { label: "Staking", color: "from-emerald-600 to-emerald-800" },
-  { label: "Governance", color: "from-orange-600 to-orange-800" },
-  { label: "Gas Model", color: "from-pink-600 to-pink-800" },
-];
-
-function CarouselNavButtons() {
-  const { scrollPrev, scrollNext, canScrollPrev, canScrollNext } =
-    useCarousel();
   return (
     <>
-      <button
-        className={cn(
-          "absolute -left-2 top-1/2 z-10 flex size-8 -translate-y-1/2 items-center justify-center rounded-full border bg-fd-card text-fd-foreground shadow-md transition-opacity",
-          !canScrollPrev && "pointer-events-none opacity-0",
-        )}
-        onClick={scrollPrev}
-      >
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <path d="M15 18l-6-6 6-6" />
-        </svg>
-      </button>
-      <button
-        className={cn(
-          "absolute -right-2 top-1/2 z-10 flex size-8 -translate-y-1/2 items-center justify-center rounded-full border bg-fd-card text-fd-foreground shadow-md transition-opacity",
-          !canScrollNext && "pointer-events-none opacity-0",
-        )}
-        onClick={scrollNext}
-      >
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <path d="M9 18l6-6-6-6" />
-        </svg>
-      </button>
+      {showShaders && (
+        <GrainGradient
+          className="absolute inset-0 animate-fd-fade-in duration-800"
+          colors={
+            resolvedTheme === 'dark'
+              ? ['#39BE1C', '#9c2f05', '#7A2A0000']
+              : ['#fcfc51', '#ffa057', '#7A2A0020']
+          }
+          colorBack="#00000000"
+          softness={1}
+          intensity={0.9}
+          noise={0.5}
+          speed={visible ? 1 : 0}
+          shape="corners"
+          minPixelRatio={1}
+          maxPixelCount={1920 * 1080}
+        />
+      )}
+      {showShaders && (
+        <Dithering
+          width={720}
+          height={720}
+          colorBack="#00000000"
+          colorFront={resolvedTheme === 'dark' ? '#DF3F00' : '#fa8023'}
+          shape="sphere"
+          type="4x4"
+          scale={0.5}
+          size={3}
+          speed={0}
+          frame={5000 * 120}
+          className="absolute animate-fd-fade-in duration-400 max-lg:bottom-[-50%] max-lg:left-[-200px] lg:top-[-5%] lg:right-0"
+          minPixelRatio={1}
+        />
+      )}
+      <div
+        ref={ref}
+        className="absolute top-[460px] left-[20%] max-w-[1200px] rounded-xl border-2 lg:top-[400px] h-[300px] w-[800px] bg-gradient-to-br from-fd-primary/10 to-fd-primary/5"
+      />
     </>
   );
 }
 
-function CarouselDemo() {
+export function CreateAppAnimation(props: ComponentProps<'div'>) {
+  const installCmd = 'paxeerd init my-dapp';
+  const tickTime = 100;
+  const timeCommandEnter = installCmd.length;
+  const timeCommandRun = timeCommandEnter + 3;
+  const timeCommandEnd = timeCommandRun + 3;
+  const timeWindowOpen = timeCommandEnd + 1;
+  const timeEnd = timeWindowOpen + 1;
+
+  const [tick, setTick] = useState(timeEnd);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTick((prev) => (prev >= timeEnd ? prev : prev + 1));
+    }, tickTime);
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, [timeEnd]);
+
+  const lines: React.ReactElement[] = [];
+
+  lines.push(
+    <span key="command_type">
+      {installCmd.substring(0, tick)}
+      {tick < timeCommandEnter && (
+        <div className="inline-block h-3 w-1 animate-pulse bg-fd-foreground" />
+      )}
+    </span>,
+  );
+
+  if (tick >= timeCommandEnter) {
+    lines.push(<span key="space"> </span>);
+  }
+
+  if (tick > timeCommandRun)
+    lines.push(
+      <Fragment key="command_response">
+        {tick > timeCommandRun + 1 && (
+          <>
+            <span className="font-medium">◇ Project name</span>
+            <span>│ my-dapp</span>
+          </>
+        )}
+        {tick > timeCommandRun + 2 && (
+          <>
+            <span>│</span>
+            <span className="font-medium">◆ Choose a template</span>
+          </>
+        )}
+        {tick > timeCommandRun + 3 && (
+          <>
+            <span>│ ● EVM Smart Contract</span>
+            <span>│ ○ Cosmos Module</span>
+            <span>│ ○ IBC Application</span>
+            <span>│ ○ Full Stack dApp</span>
+          </>
+        )}
+      </Fragment>,
+    );
+
   return (
-    <div className="flex h-full min-h-[260px] flex-col justify-center p-8">
-      <CellLabel>Carousel</CellLabel>
-      <p className="mb-5 text-xs font-medium uppercase tracking-[0.15em] text-fd-muted-foreground/50">
-        Custom Navigation
-      </p>
-      <Carousel className="w-full">
-        <CarouselContent className="-ml-3">
-          {carouselSlides.map((slide) => (
-            <CarouselItem
-              key={slide.label}
-              className="basis-1/2 pl-3 md:basis-1/3"
-            >
-              <div
-                className={cn(
-                  "flex h-24 items-center justify-center rounded-xl bg-gradient-to-br p-4",
-                  slide.color,
-                )}
-              >
-                <span className="text-sm font-semibold text-white/90">
-                  {slide.label}
-                </span>
-              </div>
-            </CarouselItem>
-          ))}
-        </CarouselContent>
-        <CarouselNavButtons />
-      </Carousel>
+    <div
+      {...props}
+      onMouseEnter={() => {
+        if (tick >= timeEnd) {
+          setTick(0);
+        }
+      }}
+    >
+      {tick > timeWindowOpen && (
+        <LaunchAppWindow className="absolute bottom-5 right-4 z-10 animate-in fade-in slide-in-from-top-10" />
+      )}
+      <pre className="font-mono text-sm min-h-[240px]">
+        <code className="grid">{lines}</code>
+      </pre>
     </div>
   );
 }
 
-function ScrollbarDemo() {
-  const [activeIdx, setActiveIdx] = useState(0);
-  const sections = [
-    "Overview",
-    "Architecture",
-    "Consensus",
-    "Runtime",
-    "Deploy",
-    "Validate",
+function LaunchAppWindow(props: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      {...props}
+      className={cn('overflow-hidden rounded-md border bg-fd-popover shadow-lg', props.className)}
+    >
+      <p className="text-xs text-fd-muted-foreground text-center px-4 py-2 border-b">
+        localhost:8545
+      </p>
+      <p className="text-sm px-4 py-2">Node started successfully!</p>
+    </div>
+  );
+}
+
+const previewButtonVariants = cva('w-20 h-8 text-sm font-medium transition-colors rounded-full', {
+  variants: {
+    active: {
+      true: 'text-fd-primary-foreground',
+      false: 'text-fd-muted-foreground',
+    },
+  },
+});
+
+export function PreviewImages(props: ComponentProps<'div'>) {
+  const [active, setActive] = useState(0);
+  const previews = [
+    {
+      name: 'Docs',
+      gradient: 'from-blue-500/20 to-violet-500/20',
+    },
+    {
+      name: 'Explorer',
+      gradient: 'from-emerald-500/20 to-teal-500/20',
+    },
+    {
+      name: 'APIs',
+      gradient: 'from-orange-500/20 to-red-500/20',
+    },
   ];
 
   return (
-    <div className="flex h-full min-h-[260px] flex-col justify-between p-8">
-      <CellLabel>Scrollbar</CellLabel>
-      <div>
-        <p className="mb-4 text-xs font-medium uppercase tracking-[0.15em] text-fd-muted-foreground/50">
-          Scroll Navigation
-        </p>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeIdx}
-            initial={{ opacity: 0, x: 10 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -10 }}
-            transition={{ duration: 0.2 }}
+    <div {...props} className={cn('relative grid min-h-[300px]', props.className)}>
+      <div className="absolute flex flex-row left-1/2 -translate-x-1/2 bottom-4 z-2 p-0.5 rounded-full bg-fd-card border shadow-xl">
+        <div
+          role="none"
+          className="absolute bg-fd-primary rounded-full w-20 h-8 transition-transform z-[-1]"
+          style={{
+            transform: `translateX(${active * 80}px)`,
+          }}
+        />
+        {previews.map((item, i) => (
+          <button
+            key={i}
+            className={cn(previewButtonVariants({ active: active === i }))}
+            onClick={() => setActive(i)}
           >
-            <h3 className="text-xl font-semibold">{sections[activeIdx]}</h3>
-            <p className="mt-1 text-sm text-fd-muted-foreground">
-              Section {activeIdx + 1} of {sections.length}
-            </p>
-          </motion.div>
-        </AnimatePresence>
+            {item.name}
+          </button>
+        ))}
       </div>
-      <div className="mt-6">
-        <div className="flex items-center gap-1.5">
-          {sections.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setActiveIdx(i)}
-              className="group relative flex h-8 flex-1 cursor-pointer items-center justify-center"
-            >
-              <div
-                className={cn(
-                  "h-1 w-full rounded-full transition-all",
-                  i === activeIdx
-                    ? "scale-y-200 bg-fd-primary"
-                    : "bg-fd-border",
-                )}
-              />
-            </button>
-          ))}
+      {previews.map((item, i) => (
+        <div
+          key={i}
+          className={cn(
+            'col-start-1 row-start-1 flex items-center justify-center rounded-2xl bg-gradient-to-br p-8',
+            item.gradient,
+            active === i ? 'animate-in fade-in slide-in-from-bottom-12 duration-800' : 'invisible',
+          )}
+        >
+          <div className="text-center">
+            <p className="text-2xl font-bold mb-2">{item.name}</p>
+            <p className="text-sm text-fd-muted-foreground">Paxeer {item.name} Preview</p>
+          </div>
         </div>
-        <div className="mt-2 flex items-center justify-between text-[10px] uppercase tracking-widest text-fd-muted-foreground/30">
-          <span>Start</span>
-          <span>End</span>
-        </div>
-      </div>
+      ))}
     </div>
   );
+}
+
+const WritingTabs = [
+  {
+    name: 'EVM',
+    value: 'evm',
+  },
+  {
+    name: 'Cosmos',
+    value: 'cosmos',
+  },
+  {
+    name: 'IBC',
+    value: 'ibc',
+  },
+] as const;
+
+export function Writing({
+  tabs: tabContents,
+}: {
+  tabs: Record<(typeof WritingTabs)[number]['value'], ReactNode>;
+}) {
+  const [tab, setTab] = useState<(typeof WritingTabs)[number]['value']>('evm');
+
+  return (
+    <div className="col-span-full my-20">
+      <h2 className="text-4xl text-brand mb-8 text-center font-medium tracking-tight">
+        Build on any stack.
+      </h2>
+      <p className="text-center mb-8 mx-auto w-full max-w-[800px]">
+        Full EVM compatibility with Cosmos SDK foundations and IBC cross-chain messaging.
+        Deploy Solidity contracts, build Cosmos modules, or bridge across chains.
+      </p>
+      <div className="flex justify-center items-center gap-4 text-fd-muted-foreground mb-6">
+        {WritingTabs.map((item) => (
+          <Fragment key={item.value}>
+            <ArrowRight className="size-4 first:hidden" />
+            <button
+              className={cn(
+                'text-lg font-medium transition-colors',
+                item.value === tab && 'text-brand',
+              )}
+              onClick={() => setTab(item.value)}
+            >
+              {item.name}
+            </button>
+          </Fragment>
+        ))}
+      </div>
+      {Object.entries(tabContents).map(([key, value]) => (
+        <div
+          key={key}
+          aria-hidden={key !== tab}
+          className={cn('animate-fd-fade-in', key !== tab && 'hidden')}
+        >
+          {value}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function AgnosticBackground() {
+  const ref = useRef<HTMLDivElement>(null);
+  const visible = useIsVisible(ref);
+
+  return (
+    <div
+      ref={ref}
+      className="absolute inset-0 -z-1 mask-[linear-gradient(to_top,white_30%,transparent_calc(100%-120px))]"
+    >
+      <Dithering
+        colorBack="#00000000"
+        colorFront="#c6bb58"
+        shape="warp"
+        type="4x4"
+        speed={visible ? 0.4 : 0}
+        className="size-full"
+        minPixelRatio={1}
+      />
+    </div>
+  );
+}
+
+let observer: IntersectionObserver;
+const observerTargets = new WeakMap<Element, (entry: IntersectionObserverEntry) => void>();
+
+function useIsVisible(ref: RefObject<HTMLElement | null>) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    observer ??= new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        observerTargets.get(entry.target)?.(entry);
+      }
+    });
+
+    const element = ref.current;
+    if (!element) return;
+    observerTargets.set(element, (entry) => {
+      setVisible(entry.isIntersecting);
+    });
+    observer.observe(element);
+
+    return () => {
+      observer.unobserve(element);
+      observerTargets.delete(element);
+    };
+  }, [ref]);
+
+  return visible;
 }
