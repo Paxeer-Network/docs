@@ -14,6 +14,7 @@
   "description": "",
   "dependencies": {
     "@number-flow/react": "^0.6.0",
+    "@paper-design/shaders-react": "^0.0.76",
     "@tailwindcss/postcss": "^4.3.0",
     "@tanstack/react-query": "^5.100.10",
     "@types/mdx": "^2.0.13",
@@ -31,12 +32,14 @@
     "lucide-react": "^1.16.0",
     "motion": "^12.38.0",
     "next": "^16.2.6",
+    "next-themes": "^0.4.6",
     "postcss": "^8.5.14",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-use-measure": "^2.1.7",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.3.0",
+    "tailwindcss-animate": "^1.0.7",
     "typescript": "^6.0.3",
     "use-sound": "^5.0.0"
   }
