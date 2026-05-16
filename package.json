@@ -13,20 +13,30 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@number-flow/react": "^0.6.0",
     "@tailwindcss/postcss": "^4.3.0",
+    "@tanstack/react-query": "^5.100.10",
     "@types/mdx": "^2.0.13",
     "@types/node": "^25.8.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.5.0",
+    "clsx": "^2.1.1",
+    "embla-carousel-react": "^8.6.0",
+    "framer-motion": "^12.38.0",
     "fumadocs-core": "^16.8.11",
     "fumadocs-mdx": "^15.0.5",
     "fumadocs-ui": "^16.8.11",
+    "lucide-react": "^1.16.0",
+    "motion": "^12.38.0",
     "next": "^16.2.6",
     "postcss": "^8.5.14",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
+    "react-use-measure": "^2.1.7",
+    "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.3.0",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "use-sound": "^5.0.0"
   }
 }
