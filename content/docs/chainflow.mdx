@@ -1,0 +1,879 @@
+---
+title: "ChainFlow"
+description: "Decentralized proprietary trading platform with on-chain evaluation and automated profit distribution"
+icon: "chart-line"
+---
+
+## Overview
+
+ChainFlow is a fully on-chain, trustless proprietary trading platform that revolutionizes how traders access capital. Built on Paxeer Network, ChainFlow eliminates centralized gatekeepers through smart contract-enforced rules, soulbound reputation NFTs, and automated profit distribution.
+
+<Note>
+**Live Dashboard:** [https://dashboard.paxeer.app](https://dashboard.paxeer.app)
+</Note>
+
+<CardGroup cols={3}>
+  <Card title="100% On-Chain" icon="link">
+    No centralized dependencies for trading logic
+  </Card>
+  <Card title="Trustless" icon="handshake">
+    Smart contracts enforce all rules
+  </Card>
+  <Card title="Automated" icon="robot">
+    Instant evaluation and payouts
+  </Card>
+</CardGroup>
+
+## Why ChainFlow is Revolutionary
+
+Traditional prop firms operate as black boxes with opaque processes, manual evaluations, and delayed payouts. ChainFlow solves these problems through radical transparency and automation.
+
+<AccordionGroup>
+  <Accordion title="Eliminates Centralized Trust" icon="shield-check">
+    All evaluation, risk gating, and profit distribution are automated with zero manual intervention. No more ad-hoc exceptions or opaque processes.
+  </Accordion>
+
+  <Accordion title="Radical Transparency" icon="eye">
+    The rules are the same for everyone—open, immutable, and verifiable on the blockchain. No favoritism or hidden levers.
+  </Accordion>
+
+  <Accordion title="Automated & Scalable" icon="arrows-maximize">
+    Deterministic on-chain logic allows the platform to support unlimited traders with instant access and payouts.
+  </Accordion>
+</AccordionGroup>
+
+## Architecture
+
+ChainFlow's architecture consists of 6 distinct layers with 11 interconnected smart contracts:
+
+### Layer 1: Core Libraries
+
+Mathematical foundation powering PnL calculations, liquidations, and risk metrics.
+
+| Contract | Address | Purpose |
+|----------|---------|---------|
+| **Math** | `0xD4d37681FBd276d45B867A28668C09fB115C47De` | Advanced mathematical operations |
+| **SafetyChecks** | `0x9EE12BEe3f246f4Cb30Be3b558b49ec9c60afB20` | Risk validation logic |
+| **PositionManager** | `0xf233245A1Ed5A118c2e3085d564B03e87ADCd8D6` | Position tracking and management |
+
+[View on Explorer →](https://paxscan.io/address/0xD4d37681FBd276d45B867A28668C09fB115C47De)
+
+---
+
+### Layer 2: Reputation System
+
+Soulbound NFTs representing trader credentials and performance history.
+
+<Card title="ReputationNFT" icon="id-badge">
+  **Address:** `0x202B81a89Adc1039656E78ea1749A038155d8540`
+  
+  **Features:**
+  - Non-transferable (soulbound)
+  - Permanently bound to trader addresses
+  - Prevents credential farming
+  - On-chain performance history
+  
+  [View Contract →](https://paxscan.io/address/0x202B81a89Adc1039656E78ea1749A038155d8540)
+</Card>
+
+---
+
+### Layer 3: Oracle Infrastructure
+
+Decentralized price feeds with staleness protection and deviation limits.
+
+<CardGroup cols={2}>
+  <Card title="Oracle Registry" icon="database">
+    **Address:** `0xA10506DEabD72f3708a7DAeB654b4925d0081253`
+    
+    Central registry for price oracles
+  </Card>
+  <Card title="BTC/USD Oracle" icon="bitcoin">
+    **Address:** `0x729e3c277CDE256dBD54Af517998719Bc6a821B4`
+    
+    Initial Price: $50,000.00
+  </Card>
+</CardGroup>
+
+<Card title="ETH/USD Oracle" icon="ethereum">
+  **Address:** `0xc60792a2de58D4D822BF2C7fBA56528e0c3701C5`
+  
+  Initial Price: $3,000.00
+</Card>
+
+**Features:**
+- 5% maximum price deviation
+- Staleness protection
+- Modular design (add pairs without redeployment)
+
+---
+
+### Layer 4: Treasury Management
+
+Multi-vault system managing capital with sophisticated allocation logic.
+
+| Vault | Address | Balance | Purpose |
+|-------|---------|---------|---------|
+| **TreasuryManager** | `0x4B2E8B4850f9EDf3509eeeAf664f5D6Cc2178fF8` | 500,000 USDC | Firm capital |
+| **TradingVault** | `0x7aA4C34351905Ea0521C3c327ED44558157bb5Ac` | 200,000 USDC | Trading capital |
+
+**Total Deployed Capital:** 700,000 USDC
+
+---
+
+### Layer 5: Evaluation System
+
+Virtual trading environment for trader qualification.
+
+<Card title="EvaluationManager" icon="clipboard-check">
+  **Address:** `0xB03A50e11f9dF169B46dF31189A4544ad727Acb5`
+  
+  **Configuration:**
+  - Virtual Balance: 10,000 USDC
+  - Profit Target: 10%
+  - Max Drawdown: 5%
+  - Minimum Trades: 5
+  
+  [View Contract →](https://paxscan.io/address/0xB03A50e11f9dF169B46dF31189A4544ad727Acb5)
+</Card>
+
+**Features:**
+- Gas-efficient virtual position tracking
+- Off-chain execution with on-chain verification
+- 90% cost reduction vs fully on-chain
+
+---
+
+### Layer 6: Production Trading
+
+Funded trading vaults with automated profit distribution.
+
+<Card title="TraderVaultFactory" icon="industry">
+  **Address:** `0x53A2d0aAF2d405C34940b8507003Af0D98f1CA12`
+  
+  **Configuration:**
+  - Initial Capital: 100,000 USDC per trader
+  - Profit Split: 80% trader / 20% firm
+  - Deterministic addresses (CREATE2)
+  
+  [View Contract →](https://paxscan.io/address/0x53A2d0aAF2d405C34940b8507003Af0D98f1CA12)
+</Card>
+
+## How It Works
+
+<Steps>
+  <Step title="Trader Registration">
+    User connects wallet and completes KYC verification
+    
+    ```javascript
+    // Connect wallet
+    const { address } = useAccount();
+    
+    // Register for evaluation
+    await evaluationManager.registerTrader();
+    ```
+  </Step>
+
+  <Step title="Virtual Evaluation">
+    Trader enters evaluation with virtual capital
+    
+    **Rules:**
+    - 10,000 USDC virtual balance
+    - Reach 11,000 USDC (10% profit)
+    - Stay above 9,500 USDC (5% max drawdown)
+    - Execute minimum 5 trades
+    
+    ```javascript
+    // Open virtual position
+    await evaluationManager.openPosition(
+      'BTC-USD',
+      10000, // $10,000 size
+      true,  // Long
+      50000  // Entry price
+    );
+    ```
+  </Step>
+
+  <Step title="Reputation NFT Issuance">
+    Upon successful evaluation, receive soulbound NFT
+    
+    ```javascript
+    // NFT automatically minted on evaluation success
+    const tokenId = await reputationNFT.tokenOfOwner(address);
+    const metadata = await reputationNFT.tokenURI(tokenId);
+    ```
+  </Step>
+
+  <Step title="Funded Account Deployment">
+    Factory deploys personal trading vault with real capital
+    
+    ```javascript
+    // Factory creates funded vault
+    const vaultAddress = await traderVaultFactory.createVault(trader);
+    // Vault receives 100,000 USDC
+    ```
+  </Step>
+
+  <Step title="Live Trading">
+    Execute trades with real capital through trading vault
+    
+    ```javascript
+    // Execute trade through vault
+    await traderVault.openPosition(
+      'BTC-USD',
+      50000, // $50,000 position
+      true   // Long
+    );
+    ```
+  </Step>
+
+  <Step title="Profit Distribution">
+    Automatic 80/20 profit split on withdrawal
+    
+    ```javascript
+    // Withdraw profits
+    await traderVault.withdrawProfits();
+    // 80% to trader, 20% to firm (automatic)
+    ```
+  </Step>
+</Steps>
+
+## Smart Contract Interfaces
+
+### Evaluation Manager
+
+```solidity IEvaluationManager
+interface IEvaluationManager {
+    // Register for evaluation
+    function registerTrader() external;
+    
+    // Virtual trading
+    function openPosition(
+        string memory symbol,
+        uint256 size,
+        bool isLong,
+        uint256 price
+    ) external;
+    
+    function closePosition(uint256 positionId) external;
+    
+    // Check status
+    function getEvaluationStatus(address trader) 
+        external view returns (
+            uint256 balance,
+            uint256 profitTarget,
+            uint256 maxDrawdown,
+            uint256 trades,
+            bool passed
+        );
+}
+```
+
+### Trader Vault Factory
+
+```solidity ITraderVaultFactory
+interface ITraderVaultFactory {
+    // Create funded vault
+    function createVault(address trader) 
+        external returns (address vault);
+    
+    // Query vault
+    function getVault(address trader) 
+        external view returns (address);
+    
+    // Vault configuration
+    function getInitialCapital() 
+        external view returns (uint256);
+    
+    function getProfitSplit() 
+        external view returns (uint256);
+}
+```
+
+### Reputation NFT
+
+```solidity IReputationNFT
+interface IReputationNFT {
+    // Soulbound NFT (non-transferable)
+    function mint(address trader, string memory uri) external;
+    
+    // Query trader reputation
+    function tokenOfOwner(address owner) 
+        external view returns (uint256);
+    
+    function hasReputation(address trader) 
+        external view returns (bool);
+}
+```
+
+## Integration Example
+
+Complete example of integrating ChainFlow:
+
+```typescript ChainFlowIntegration.ts
+import { ethers } from 'ethers';
+
+const EVALUATION_MANAGER = '0xB03A50e11f9dF169B46dF31189A4544ad727Acb5';
+const REPUTATION_NFT = '0x202B81a89Adc1039656E78ea1749A038155d8540';
+const FACTORY = '0x53A2d0aAF2d405C34940b8507003Af0D98f1CA12';
+
+async function joinChainFlow(signer: ethers.Signer) {
+  const evaluationManager = new ethers.Contract(
+    EVALUATION_MANAGER,
+    EVALUATION_MANAGER_ABI,
+    signer
+  );
+
+  // 1. Register for evaluation
+  const registerTx = await evaluationManager.registerTrader();
+  await registerTx.wait();
+  console.log('✅ Registered for evaluation');
+
+  // 2. Trade in virtual environment
+  const openTx = await evaluationManager.openPosition(
+    'BTC-USD',
+    ethers.parseUnits('10000', 6), // 10K USDC
+    true,  // Long
+    50000  // $50,000 entry
+  );
+  await openTx.wait();
+  console.log('✅ Position opened');
+
+  // 3. Check evaluation status
+  const status = await evaluationManager.getEvaluationStatus(
+    await signer.getAddress()
+  );
+  
+  if (status.passed) {
+    console.log('✅ Evaluation passed!');
+    
+    // 4. Get reputation NFT
+    const repNFT = new ethers.Contract(REPUTATION_NFT, NFT_ABI, signer);
+    const tokenId = await repNFT.tokenOfOwner(await signer.getAddress());
+    console.log('✅ Reputation NFT ID:', tokenId);
+    
+    // 5. Get funded vault
+    const factory = new ethers.Contract(FACTORY, FACTORY_ABI, signer);
+    const vaultAddress = await factory.getVault(await signer.getAddress());
+    console.log('✅ Funded vault:', vaultAddress);
+  }
+}
+```
+
+## Technology Stack
+
+<Tabs>
+  <Tab title="Protocol">
+    ### Smart Contracts
+    
+    - **Language:** Solidity 0.8.20+
+    - **Framework:** Hardhat
+    - **Libraries:** OpenZeppelin
+    - **Testing:** Mocha, Chai
+    - **Network:** Paxeer Network (Chain ID: 125)
+    
+    ```bash
+    npm install --save-dev hardhat @openzeppelin/contracts
+    npx hardhat test
+    ```
+  </Tab>
+
+  <Tab title="Frontend">
+    ### Web Application
+    
+    - **Framework:** Next.js 14
+    - **Language:** TypeScript
+    - **UI Library:** shadcn/ui, Tailwind CSS
+    - **State:** React hooks, wagmi
+    - **Features:** PWA support
+    
+    ```bash
+    pnpm create next-app@latest chainflow-frontend
+    pnpm add wagmi viem @tanstack/react-query
+    ```
+  </Tab>
+
+  <Tab title="Backend">
+    ### API Server
+    
+    - **Runtime:** Node.js
+    - **Framework:** Express
+    - **Language:** TypeScript
+    - **Database:** PostgreSQL (Sequelize ORM)
+    - **Real-time:** WebSockets
+    
+    ```bash
+    pnpm add express sequelize pg ws
+    pnpm add -D @types/express @types/node
+    ```
+  </Tab>
+
+  <Tab title="Infrastructure">
+    ### Deployment
+    
+    - **Web Server:** Nginx (Reverse Proxy)
+    - **Process Manager:** PM2
+    - **SSL/TLS:** Certbot (Let's Encrypt)
+    - **Monitoring:** Prometheus + Grafana
+    
+    ```bash
+    sudo apt install nginx
+    npm install -g pm2
+    sudo certbot --nginx -d dashboard.paxeer.app
+    ```
+  </Tab>
+</Tabs>
+
+## Key Features
+
+### Protocol Layer (Smart Contracts)
+
+<AccordionGroup>
+  <Accordion title="On-Chain Evaluation System" icon="clipboard-check">
+    All performance metrics and rules are calculated and enforced by smart contracts:
+    
+    - Virtual balance tracking
+    - Profit/loss calculation
+    - Drawdown monitoring
+    - Trade counting
+    - Pass/fail determination
+    
+    100% transparent and auditable.
+  </Accordion>
+
+  <Accordion title="Automated Risk Management" icon="shield">
+    Smart contracts automatically gate risky trades and enforce limits:
+    
+    - Maximum drawdown enforcement (5%)
+    - Position size limits
+    - Leverage restrictions
+    - Real-time risk calculations
+    - Automatic liquidation protection
+  </Accordion>
+
+  <Accordion title="Instant Profit Distribution" icon="money-bill-transfer">
+    Payouts triggered automatically upon successful evaluation:
+    
+    - 80% to trader
+    - 20% to firm
+    - No withdrawal delays
+    - No manual approval needed
+    
+    ```solidity
+    function withdrawProfits() external {
+        uint256 profits = calculateProfits(msg.sender);
+        uint256 traderShare = profits * 80 / 100;
+        uint256 firmShare = profits * 20 / 100;
+        
+        // Automatic distribution
+        usdc.transfer(msg.sender, traderShare);
+        usdc.transfer(treasury, firmShare);
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Soulbound Reputation NFTs" icon="id-card">
+    Non-transferable NFTs that permanently bind to trader addresses:
+    
+    - Cannot be sold or transferred
+    - Prevents credential farming
+    - Permanent performance record
+    - Enables reputation-based features
+  </Accordion>
+</AccordionGroup>
+
+### Application Layer
+
+<AccordionGroup>
+  <Accordion title="Modern Trading UX" icon="chart-candlestick">
+    Feature-rich interface with:
+    - Limit & Market order forms
+    - Real-time market data (WebSocket)
+    - Portfolio views
+    - Trading history
+    - P&L analytics
+  </Accordion>
+
+  <Accordion title="Seamless Onboarding" icon="user-plus">
+    Integrated KYC flows:
+    - Progress visualization
+    - Step-wise gating
+    - Automated verification
+    - Beta disclaimer acceptance
+  </Accordion>
+
+  <Accordion title="Admin Dashboard" icon="gauge">
+    Comprehensive back-office for managing:
+    - **CRM:** Users, roles, KYC, support tickets
+    - **Finance:** Deposits, withdrawals, wallets
+    - **Trading:** Futures, forex, staking, ICOs
+    - **System:** Settings, announcements, logs
+  </Accordion>
+</AccordionGroup>
+
+## Deployed Contracts
+
+### Production Deployment
+
+**Deployment Date:** October 4, 2025  
+**Network:** Paxeer Mainnet (Chain ID: 125)  
+**Status:** 🟢 Production Ready  
+**Tests:** 24/24 Passing ✅
+
+<Accordion title="View All Contract Addresses">
+
+| Layer | Contract | Address |
+|-------|----------|---------|
+| **1** | Math | `0xD4d37681FBd276d45B867A28668C09fB115C47De` |
+| **1** | SafetyChecks | `0x9EE12BEe3f246f4Cb30Be3b558b49ec9c60afB20` |
+| **1** | PositionManager | `0xf233245A1Ed5A118c2e3085d564B03e87ADCd8D6` |
+| **2** | ReputationNFT | `0x202B81a89Adc1039656E78ea1749A038155d8540` |
+| **3** | OracleRegistry | `0xA10506DEabD72f3708a7DAeB654b4925d0081253` |
+| **3** | BTC/USD Oracle | `0x729e3c277CDE256dBD54Af517998719Bc6a821B4` |
+| **3** | ETH/USD Oracle | `0xc60792a2de58D4D822BF2C7fBA56528e0c3701C5` |
+| **4** | TreasuryManager | `0x4B2E8B4850f9EDf3509eeeAf664f5D6Cc2178fF8` |
+| **4** | TradingVault | `0x7aA4C34351905Ea0521C3c327ED44558157bb5Ac` |
+| **5** | EvaluationManager | `0xB03A50e11f9dF169B46dF31189A4544ad727Acb5` |
+| **6** | TraderVaultFactory | `0x53A2d0aAF2d405C34940b8507003Af0D98f1CA12` |
+
+</Accordion>
+
+## Getting Started
+
+### For Traders
+
+<Steps>
+  <Step title="Connect Wallet">
+    Visit [dashboard.paxeer.app](https://dashboard.paxeer.app) and connect your wallet
+  </Step>
+
+  <Step title="Complete KYC">
+    Verify your identity through the KYC process
+  </Step>
+
+  <Step title="Start Evaluation">
+    Begin trading with 10,000 USDC virtual capital
+  </Step>
+
+  <Step title="Pass Evaluation">
+    Achieve 10% profit with max 5% drawdown
+  </Step>
+
+  <Step title="Receive Funding">
+    Get 100,000 USDC funded account automatically
+  </Step>
+
+  <Step title="Trade & Earn">
+    Keep 80% of profits, firm keeps 20%
+  </Step>
+</Steps>
+
+### For Developers
+
+<CodeGroup>
+
+```bash Clone Repository
+git clone https://github.com/paxeer/chainflow
+cd chainflow
+pnpm install
+```
+
+```bash Deploy Contracts
+cd contracts
+npx hardhat run scripts/deploy.js --network paxeer
+```
+
+```bash Run Backend
+cd backend
+pnpm build
+pm2 start dist/index.js --name chainflow-api
+```
+
+```bash Run Frontend
+cd frontend
+pnpm build
+pm2 start npm --name chainflow-app -- start
+```
+
+</CodeGroup>
+
+## API Documentation
+
+### REST Endpoints
+
+<Tabs>
+  <Tab title="Public">
+    ```bash GET /api/public/announcements
+    curl https://dashboard.paxeer.app/api/public/announcements
+    ```
+    
+    ```bash GET /api/settings
+    curl https://dashboard.paxeer.app/api/settings
+    ```
+  </Tab>
+
+  <Tab title="User">
+    ```bash GET /api/user/kyc/level
+    curl -H "Authorization: Bearer TOKEN" \
+      https://dashboard.paxeer.app/api/user/kyc/level
+    ```
+    
+    ```bash POST /api/user/kyc/application
+    curl -X POST -H "Authorization: Bearer TOKEN" \
+      -H "Content-Type: application/json" \
+      -d '{"documents": [...]}' \
+      https://dashboard.paxeer.app/api/user/kyc/application
+    ```
+  </Tab>
+
+  <Tab title="Trading">
+    ```bash GET /api/trading/markets
+    curl https://dashboard.paxeer.app/api/trading/markets
+    ```
+    
+    ```bash POST /api/trading/order
+    curl -X POST -H "Authorization: Bearer TOKEN" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "symbol": "BTC-USD",
+        "size": 10000,
+        "side": "long"
+      }' \
+      https://dashboard.paxeer.app/api/trading/order
+    ```
+  </Tab>
+</Tabs>
+
+### WebSocket Streams
+
+```javascript
+const ws = new WebSocket('wss://dashboard.paxeer.app/ws');
+
+ws.onopen = () => {
+  // Subscribe to market data
+  ws.send(JSON.stringify({
+    type: 'subscribe',
+    channel: 'market.BTC-USD'
+  }));
+};
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log('Market update:', data);
+};
+```
+
+## Security & Compliance
+
+<Warning>
+**Security is paramount.** ChainFlow implements multiple layers of protection:
+</Warning>
+
+### Protocol Security
+
+- ✅ OpenZeppelin security libraries
+- ✅ Role-based access control (RBAC)
+- ✅ Pausable emergency-stop
+- ✅ Reentrancy guards
+- ✅ SafeMath operations
+- ✅ Input validation
+- ✅ Event audit trail
+
+### Application Security
+
+- ✅ End-to-end TLS encryption
+- ✅ KYC verification
+- ✅ Fine-grained permissions
+- ✅ Input validation & sanitization
+- ✅ CSRF/XSS protection
+- ✅ Rate limiting
+- ✅ Comprehensive logging
+
+### Recommended for Mainnet
+
+<AccordionGroup>
+  <Accordion title="Professional Audit" icon="magnifying-glass-chart">
+    Commission third-party security audit from:
+    - Trail of Bits
+    - OpenZeppelin
+    - ConsenSys Diligence
+  </Accordion>
+
+  <Accordion title="Bug Bounty Program" icon="bug">
+    Launch public bug bounty with rewards:
+    - Critical: $10,000 - $50,000
+    - High: $5,000 - $10,000
+    - Medium: $1,000 - $5,000
+  </Accordion>
+
+  <Accordion title="Progressive Rollout" icon="timeline">
+    Start with limited capital:
+    - Alpha: 10 traders, 10K each
+    - Beta: 50 traders, 50K each
+    - Production: Unlimited, 100K each
+  </Accordion>
+</AccordionGroup>
+
+## Deployment Statistics
+
+**Total Development Time:** ~4 hours  
+**Deployment Duration:** 47 minutes  
+**Failed Attempts:** 5 (all resolved)  
+**Final Tests:** 24/24 passing ✅
+
+### Capital Deployed
+
+- Treasury Manager: 500,000 USDC
+- Trading Vault: 200,000 USDC
+- **Total:** 700,000 USDC
+
+### Gas Consumption
+
+- Total Deployment: ~0.02 ETH
+- Average per Contract: ~0.0018 ETH
+- All Transactions: < $1 total cost
+
+## Innovation Highlights
+
+<CardGroup cols={2}>
+  <Card title="Soulbound Credentials" icon="fingerprint">
+    Non-transferable NFTs prevent credential farming and ensure authentic trader identity
+  </Card>
+  <Card title="Layered Treasury" icon="layer-group">
+    Separated firm capital from trading capital for independent accounting and risk management
+  </Card>
+  <Card title="Virtual Evaluation" icon="vr-cardboard">
+    Gas-efficient evaluation using off-chain tracking with on-chain verification (90% cost savings)
+  </Card>
+  <Card title="Factory Pattern" icon="industry">
+    CREATE2 deterministic addresses for predictable vault deployment
+  </Card>
+  <Card title="Modular Oracles" icon="plug">
+    Add new trading pairs without redeploying core contracts
+  </Card>
+  <Card title="Automated Distribution" icon="gear">
+    Smart contracts handle 80/20 profit split automatically
+  </Card>
+</CardGroup>
+
+## Roadmap
+
+<Steps>
+  <Step title="Phase 1: Alpha Testing">
+    - Internal testing with 5 traders
+    - Frontend integration
+    - Bug fixes and optimizations
+  </Step>
+
+  <Step title="Phase 2: Security Audit">
+    - Professional third-party audit
+    - Bug bounty program launch
+    - Security improvements
+  </Step>
+
+  <Step title="Phase 3: Public Beta">
+    - 50 trader limit
+    - Real-time announcements
+    - Community feedback
+  </Step>
+
+  <Step title="Phase 4: Full Launch">
+    - Unlimited traders
+    - Additional trading pairs (10+ assets)
+    - Advanced features (copy trading, automation)
+  </Step>
+</Steps>
+
+## Resources
+
+<CardGroup cols={2}>
+  <Card
+    title="Live Dashboard"
+    icon="gauge"
+    href="https://dashboard.paxeer.app"
+  >
+    Access the ChainFlow platform
+  </Card>
+  <Card
+    title="Smart Contracts"
+    icon="code"
+    href="https://github.com/paxeer/chainflow-contracts"
+  >
+    View source code
+  </Card>
+  <Card
+    title="API Documentation"
+    icon="book"
+    href="https://dashboard.paxeer.app/api/docs"
+  >
+    Swagger API reference
+  </Card>
+  <Card
+    title="Community"
+    icon="users"
+    href="https://discord.gg/paxeer"
+  >
+    Join discussions
+  </Card>
+</CardGroup>
+
+## Success Metrics
+
+<CardGroup cols={3}>
+  <Card title="Capital Deployed" icon="sack-dollar">
+    **700,000 USDC**
+  </Card>
+  <Card title="Contracts Deployed" icon="file-contract">
+    **11 Contracts**
+  </Card>
+  <Card title="Test Coverage" icon="check-double">
+    **24/24 Passing**
+  </Card>
+</CardGroup>
+
+## What Makes ChainFlow Different
+
+| Feature | Traditional Prop Firms | ChainFlow |
+|---------|----------------------|-----------|
+| Trust Model | Centralized | Trustless (Smart Contracts) |
+| Transparency | Opaque | Fully transparent on-chain |
+| Evaluation Time | Days/Weeks | Real-time |
+| Payout Time | 7-30 days | Instant (automated) |
+| Rule Enforcement | Manual | Automated (100%) |
+| Credential Portability | None | Soulbound NFT |
+| Scalability | Limited | Unlimited |
+| Profit Split | Varies | Fixed 80/20 |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Start Trading"
+    icon="rocket"
+    href="https://dashboard.paxeer.app"
+  >
+    Register and begin evaluation
+  </Card>
+  <Card
+    title="Developer Guide"
+    icon="code"
+    href="https://github.com/paxeer/chainflow"
+  >
+    Integrate ChainFlow
+  </Card>
+  <Card
+    title="Smart Contracts"
+    icon="book"
+    href="/contracts"
+  >
+    Deploy your own contracts
+  </Card>
+  <Card
+    title="API Reference"
+    icon="terminal"
+    href="/api-reference"
+  >
+    Explore Paxeer Network API
+  </Card>
+</CardGroup>
+

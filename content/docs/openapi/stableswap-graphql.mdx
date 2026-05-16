@@ -1,0 +1,94 @@
+---
+title: StableSwap GraphQL
+description: GraphQL schema for the Paxeer StableSwap indexer.
+---
+
+# StableSwap GraphQL Schema
+
+GraphQL schema for the StableSwap indexer — pools, tokens, swaps, liquidity events, fee claims, and positions.
+
+**Endpoint:** `https://us-east-1.stable-swap.sidiora.exchange/graphql`
+
+## Schema
+
+```graphql
+directive @oneOf on INPUT_OBJECT
+
+scalar BigDecimal
+scalar DateTime
+
+type protocol {
+  id: String!
+}
+
+type pool {
+  id: String!
+}
+
+type pools {
+  first: Int
+  skip: Int
+}
+
+type token {
+  id: String!
+}
+
+type tokens {
+  first: Int
+  skip: Int
+}
+
+type swap {
+  id: String!
+}
+
+type swaps {
+  first: Int
+  skip: Int
+  poolId: String
+  orderBy: String
+  orderDirection: String
+}
+
+type liquidityEvents {
+  first: Int
+  skip: Int
+  poolId: String
+  orderBy: String
+  orderDirection: String
+}
+
+type feeClaims {
+  first: Int
+  skip: Int
+  poolId: String
+}
+
+type position {
+  id: String!
+}
+
+type positions {
+  first: Int
+  skip: Int
+  owner: String
+}
+
+type user {
+  id: String!
+}
+
+type users {
+  first: Int
+  skip: Int
+}
+
+type indexerStatus {
+  lastIndexedBlock: Int!
+  chainHead: Int
+  blocksScanned: Int
+  eventsProcessed: Int
+  isSynced: Boolean
+}
+```

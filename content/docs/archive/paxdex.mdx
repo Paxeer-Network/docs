@@ -1,0 +1,483 @@
+---
+title: "PaxDex Protocol (Legacy)"
+description: "Archived legacy PaxDex API reference. Use HyperPax DEX for current DEX documentation."
+icon: "arrow-right-arrow-left"
+---
+
+## Overview
+
+<Warning>
+This page is archived legacy documentation. Use [HyperPax DEX](/sidiora/dex) for the current network-operated DEX.
+</Warning>
+
+A decentralized exchange protocol for seamless token swaps on Paxeer Network with real-time price feeds and WebSocket support.
+
+<CardGroup cols={3}>
+  <Card title="Swap Fee" icon="percent">
+    **0.3%**
+  </Card>
+  <Card title="Supported Tokens" icon="coins">
+    **12 Tokens**
+  </Card>
+  <Card title="Real-time Prices" icon="chart-line">
+    **WebSocket**
+  </Card>
+</CardGroup>
+
+## Quick Start
+
+<Steps>
+  <Step title="API Base URL">
+    ```
+    https://dex-api.paxeer.app
+    ```
+  </Step>
+  
+  <Step title="WebSocket URL">
+    ```
+    wss://dex-api.paxeer.app:3001
+    ```
+  </Step>
+  
+  <Step title="Test Connection">
+    ```bash
+    curl https://dex-api.paxeer.app/api/health
+    ```
+  </Step>
+</Steps>
+
+## Key Features
+
+<AccordionGroup>
+  <Accordion title="Real-time Price Feeds" icon="chart-line">
+    Get live price updates via REST API or WebSocket for all supported tokens.
+  </Accordion>
+
+  <Accordion title="Low Fees" icon="tag">
+    Only 0.3% swap fee (30 basis points) on all token exchanges.
+  </Accordion>
+
+  <Accordion title="Smart Contracts" icon="file-contract">
+    Battle-tested vault and oracle contracts for secure swaps.
+  </Accordion>
+
+  <Accordion title="Developer Friendly" icon="code">
+    Simple REST API, WebSocket support, and clear documentation.
+  </Accordion>
+</AccordionGroup>
+
+## REST API
+
+### Endpoints
+
+<Tabs>
+  <Tab title="Health Check">
+    #### GET /api/health
+
+    Check API health status and service availability.
+
+    ```bash cURL
+    curl https://dex-api.paxeer.app/api/health
+    ```
+
+    ```json Response
+    {
+      "status": "ok",
+      "timestamp": 1693234567890
+    }
+    ```
+  </Tab>
+
+  <Tab title="Get Prices">
+    #### GET /api/prices
+
+    Get current prices for all supported tokens.
+
+    ```bash cURL
+    curl https://dex-api.paxeer.app/api/prices
+    ```
+
+    ```json Response
+    {
+      "success": true,
+      "data": {
+        "0x96465d06640aff1a00888d4b9217c9eae708c419": {
+          "address": "0x96465d06640aff1a00888d4b9217c9eae708c419",
+          "symbol": "WBTC",
+          "name": "Wrapped Bitcoin",
+          "decimals": 8,
+          "price": 45230.50,
+          "change24h": 2.45,
+          "timestamp": 1693234567890
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Token Price">
+    #### GET /api/prices/:address
+
+    Get price data for a specific token by address.
+
+    ```bash cURL
+    curl https://dex-api.paxeer.app/api/prices/0x96465d06640aff1a00888d4b9217c9eae708c419
+    ```
+
+    ```json Response
+    {
+      "success": true,
+      "data": {
+        "address": "0x96465d06640aff1a00888d4b9217c9eae708c419",
+        "symbol": "WBTC",
+        "price": 45230.50,
+        "change24h": 2.45,
+        "volume24h": 1234567.89
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Swap Data">
+    #### GET /api/tokens/swap
+
+    Get enhanced token data optimized for swap interfaces.
+
+    ```bash cURL
+    curl https://dex-api.paxeer.app/api/tokens/swap
+    ```
+
+    ```json Response
+    {
+      "success": true,
+      "data": [
+        {
+          "address": "0x96465d06640aff1a00888d4b9217c9eae708c419",
+          "symbol": "WBTC",
+          "name": "Wrapped Bitcoin",
+          "decimals": 8,
+          "price": 45230.50,
+          "liquidity": 15000000,
+          "volume24h": 5000000
+        }
+      ]
+    }
+    ```
+  </Tab>
+
+  <Tab title="Price History">
+    #### GET /api/prices/:address/history
+
+    Get historical price data (1h, 24h, 7d, 30d).
+
+    ```bash cURL
+    curl https://dex-api.paxeer.app/api/prices/0x96465d06640aff1a00888d4b9217c9eae708c419/history?period=24h
+    ```
+
+    ```json Response
+    {
+      "success": true,
+      "data": {
+        "prices": [
+          { "timestamp": 1693234567890, "price": 45230.50 },
+          { "timestamp": 1693234467890, "price": 45180.20 }
+        ]
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Rate Limits
+
+- **100** requests per minute per IP
+- Responses include cache information
+- No authentication required
+
+## WebSocket API
+
+### Connection
+
+Connect to the WebSocket server for real-time price updates:
+
+```javascript
+const ws = new WebSocket('wss://dex-api.paxeer.app:3001');
+
+ws.onopen = () => {
+  console.log('Connected to PaxDex');
+};
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  if (data.type === 'price_update') {
+    console.log('Price update:', data.data);
+  }
+};
+
+ws.onerror = (error) => {
+  console.error('WebSocket error:', error);
+};
+
+ws.onclose = () => {
+  console.log('Disconnected from PaxDex');
+};
+```
+
+### Message Format
+
+Price update messages follow this format:
+
+```json
+{
+  "type": "price_update",
+  "data": {
+    "0x96465d06640aff1a00888d4b9217c9eae708c419": {
+      "symbol": "WBTC",
+      "price": 45230.50,
+      "change24h": 2.45,
+      "timestamp": 1693234567890
+    }
+  }
+}
+```
+
+### React Hook Example
+
+```typescript usePaxDexPrices.ts
+import { useState, useEffect } from 'react';
+
+export const usePaxDexPrices = () => {
+  const [prices, setPrices] = useState({});
+  const [isConnected, setIsConnected] = useState(false);
+
+  useEffect(() => {
+    const ws = new WebSocket('wss://dex-api.paxeer.app:3001');
+    
+    ws.onopen = () => setIsConnected(true);
+    
+    ws.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      if (message.type === 'price_update') {
+        setPrices(prev => ({ ...prev, ...message.data }));
+      }
+    };
+
+    ws.onclose = () => setIsConnected(false);
+
+    return () => ws.close();
+  }, []);
+
+  return { prices, isConnected };
+};
+```
+
+## Smart Contracts
+
+### Deployed Contracts
+
+<CardGroup cols={2}>
+  <Card title="Vault Contract" icon="vault">
+    ```
+    0x49B0f9a0554da1A7243A9C8ac5B45245A66D90ff
+    ```
+    [View on Explorer →](https://paxscan.io/address/0x49B0f9a0554da1A7243A9C8ac5B45245A66D90ff)
+  </Card>
+
+  <Card title="Oracle Contract" icon="crystal-ball">
+    ```
+    0x6e5da6d7a89c6B7cB0e5c64fcf326292F76A0352
+    ```
+    [View on Explorer →](https://paxscan.io/address/0x6e5da6d7a89c6B7cB0e5c64fcf326292F76A0352)
+  </Card>
+</CardGroup>
+
+### Swap Function
+
+```solidity
+function swapExactTokensForTokens(
+  address _tokenIn,
+  address _tokenOut,
+  uint256 _amountIn,
+  uint256 _minAmountOut
+) external
+```
+
+### Fee Constants
+
+```solidity
+uint256 public constant SWAP_FEE_BPS = 30;      // 0.3%
+uint256 public constant BPS_DENOMINATOR = 10000; // 100%
+```
+
+Fee calculation: `30 / 10000 = 0.003 = 0.3%`
+
+### Implementation Example
+
+```javascript
+import { ethers } from 'ethers';
+
+const VAULT_ADDRESS = '0x49B0f9a0554da1A7243A9C8ac5B45245A66D90ff';
+const VAULT_ABI = [/* ... */];
+
+async function swap(tokenInAddress, tokenOutAddress, amountIn, minAmountOut) {
+  const signer = await provider.getSigner();
+  const vault = new ethers.Contract(VAULT_ADDRESS, VAULT_ABI, signer);
+
+  // 1. Approve token spending
+  const tokenIn = new ethers.Contract(tokenInAddress, ERC20_ABI, signer);
+  const approveTx = await tokenIn.approve(VAULT_ADDRESS, amountIn);
+  await approveTx.wait();
+
+  // 2. Execute swap
+  const swapTx = await vault.swapExactTokensForTokens(
+    tokenInAddress,
+    tokenOutAddress,
+    amountIn,
+    minAmountOut
+  );
+  
+  const receipt = await swapTx.wait();
+  console.log('Swap completed:', receipt.hash);
+}
+```
+
+## Supported Tokens
+
+<Note>
+All tokens are deployed on Paxeer Network (Chain ID: 125)
+</Note>
+
+| Token | Name | Address | Decimals |
+|-------|------|---------|----------|
+| WBTC | Wrapped Bitcoin | `0x96465d06640aff1a00888d4b9217c9eae708c419` | 8 |
+| wstETH | Wrapped stETH | `0xeb2c4ae6fe90f9bf25c94269236cb5408e00e188` | 18 |
+| WETH | Wrapped Ethereum | `0xd0c1a714c46c364dbdd4e0f7b0b6ba5354460da7` | 18 |
+| USDT | Tether USD | `0x2a401fe7616c4aba69b147b4b725ce48ca7ec660` | 6 |
+| USDC | USD Coin | `0x29e1f94f6b209b57ecdc1fe87448a6d085a78a5a` | 6 |
+
+<Tip>
+Click on any address to view the token contract on PaxScan.
+</Tip>
+
+## Integration Example
+
+Here's a complete example of integrating PaxDex into your dApp:
+
+<CodeGroup>
+
+```typescript React + wagmi
+import { useWriteContract, useReadContract } from 'wagmi';
+import { parseEther } from 'viem';
+
+const VAULT_ADDRESS = '0x49B0f9a0554da1A7243A9C8ac5B45245A66D90ff';
+
+function SwapComponent() {
+  const { writeContract } = useWriteContract();
+
+  async function handleSwap(tokenIn, tokenOut, amount, minAmountOut) {
+    // First approve
+    await writeContract({
+      address: tokenIn,
+      abi: ERC20_ABI,
+      functionName: 'approve',
+      args: [VAULT_ADDRESS, amount],
+    });
+
+    // Then swap
+    await writeContract({
+      address: VAULT_ADDRESS,
+      abi: VAULT_ABI,
+      functionName: 'swapExactTokensForTokens',
+      args: [tokenIn, tokenOut, amount, minAmountOut],
+    });
+  }
+
+  return (
+    <button onClick={() => handleSwap(...)}>
+      Swap Tokens
+    </button>
+  );
+}
+```
+
+```javascript vanilla JavaScript
+async function performSwap(signer, tokenIn, tokenOut, amount, minAmountOut) {
+  const VAULT_ADDRESS = '0x49B0f9a0554da1A7243A9C8ac5B45245A66D90ff';
+  
+  // Approve token
+  const tokenContract = new ethers.Contract(tokenIn, ERC20_ABI, signer);
+  const approveTx = await tokenContract.approve(VAULT_ADDRESS, amount);
+  await approveTx.wait();
+  
+  // Execute swap
+  const vault = new ethers.Contract(VAULT_ADDRESS, VAULT_ABI, signer);
+  const swapTx = await vault.swapExactTokensForTokens(
+    tokenIn,
+    tokenOut,
+    amount,
+    minAmountOut
+  );
+  
+  return await swapTx.wait();
+}
+```
+
+</CodeGroup>
+
+## Error Handling
+
+Common errors and their solutions:
+
+<AccordionGroup>
+  <Accordion title="Insufficient Allowance">
+    Make sure to approve the Vault contract before swapping:
+    ```javascript
+    await tokenIn.approve(VAULT_ADDRESS, amountIn);
+    ```
+  </Accordion>
+
+  <Accordion title="Slippage Exceeded">
+    Increase the `minAmountOut` parameter or wait for better market conditions.
+  </Accordion>
+
+  <Accordion title="Insufficient Liquidity">
+    The pool may not have enough liquidity for your swap. Try a smaller amount.
+  </Accordion>
+
+  <Accordion title="Price Impact Too High">
+    Your swap would significantly impact the price. Consider splitting into smaller swaps.
+  </Accordion>
+</AccordionGroup>
+
+## Resources
+
+<CardGroup cols={2}>
+  <Card
+    title="API Health"
+    icon="heartbeat"
+    href="https://dex-api.paxeer.app/api/health"
+  >
+    Check API status
+  </Card>
+  <Card
+    title="Vault Contract"
+    icon="magnifying-glass"
+    href="https://paxscan.io/address/0x49B0f9a0554da1A7243A9C8ac5B45245A66D90ff"
+  >
+    View on PaxScan
+  </Card>
+  <Card
+    title="Oracle Contract"
+    icon="magnifying-glass"
+    href="https://paxscan.io/address/0x6e5da6d7a89c6B7cB0e5c64fcf326292F76A0352"
+  >
+    View on PaxScan
+  </Card>
+  <Card
+    title="Community"
+    icon="users"
+    href="https://paxeer.app/community"
+  >
+    Get help and support
+  </Card>
+</CardGroup>

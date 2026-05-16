@@ -1,0 +1,11 @@
+{
+  "title": "CLI",
+  "pages": [
+    "index",
+    "configuration",
+    "single-node",
+    "multi-nodes",
+    "cli-commands",
+    "docker-build"
+  ]
+}

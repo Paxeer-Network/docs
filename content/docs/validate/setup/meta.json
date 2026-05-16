@@ -1,0 +1,11 @@
+{
+  "title": "Setup & Configuration",
+  "pages": [
+    "run-a-validator",
+    "configuration",
+    "state-sync",
+    "mempool",
+    "disk-usage-configuration",
+    "faq"
+  ]
+}

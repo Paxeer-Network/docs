@@ -1,0 +1,703 @@
+---
+title: "OPAX-28 Token Standard"
+description: "Native fungible token standard for ArgusVM and OpenLang - EVM-compatible but optimized for Paxeer"
+icon: "coins"
+---
+
+## Overview
+
+OPAX-28 is the native fungible token standard for Paxeer Network, designed specifically for **ArgusVM's register-based architecture** and **OpenLang's Rust-inspired syntax**. Unlike ERC-20, OPAX-28 provides improved safety, gas efficiency, and native integration with Paxeer's execution environment.
+
+<Warning>
+**Native Standard:** OPAX-28 is part of Paxeer's self-sustainable ecosystem. While compatible with ERC-20 concepts, it's optimized for ArgusVM and OpenLang, providing better performance and safety guarantees.
+</Warning>
+
+<CardGroup cols={3}>
+  <Card title="ArgusVM Optimized" icon="microchip">
+    Designed for register-based architecture
+  </Card>
+  <Card title="Built-in Safety" icon="shield-check">
+    Automatic overflow protection
+  </Card>
+  <Card title="OpenLang Native" icon="code">
+    Rust-inspired syntax
+  </Card>
+</CardGroup>
+
+## Why OPAX-28?
+
+### Part of the Self-Sustainable Ecosystem
+
+OPAX-28 is not just another token standard—it's a fundamental building block of Paxeer's independent infrastructure:
+
+<AccordionGroup>
+  <Accordion title="Native Integration" icon="link">
+    Built specifically for ArgusVM:
+    
+    - Register-based operations
+    - Optimized gas costs
+    - Native type system
+    - Better compiler optimizations
+  </Accordion>
+
+  <Accordion title="Enhanced Safety" icon="shield">
+    Safety features built into the language:
+    
+    - Automatic overflow protection
+    - Explicit error handling
+    - Type safety
+    - No need for SafeMath library
+  </Accordion>
+
+  <Accordion title="Developer Experience" icon="code">
+    Clean, modern syntax:
+    
+    - Rust-inspired language
+    - Clear function signatures
+    - Explicit return types
+    - Better IDE support
+  </Accordion>
+</AccordionGroup>
+
+## Specification
+
+### Interface
+
+All OPAX-28 compliant tokens MUST implement the following interface:
+
+```rust
+trait OPAX28 {
+    // Read-only functions
+    pub view fn name() -> bytes;
+    pub view fn symbol() -> bytes;
+    pub view fn decimals() -> u256;
+    pub view fn total_supply() -> u256;
+    pub view fn balance_of(owner: address) -> u256;
+    pub view fn allowance(owner: address, spender: address) -> u256;
+    
+    // State-changing functions
+    pub fn transfer(to: address, amount: u256) -> bool;
+    pub fn transfer_from(from: address, to: address, amount: u256) -> bool;
+    pub fn approve(spender: address, amount: u256) -> bool;
+}
+```
+
+### Events
+
+OPAX-28 tokens MUST emit the following events:
+
+```rust
+event Transfer(from: address indexed, to: address indexed, amount: u256);
+event Approval(owner: address indexed, spender: address indexed, amount: u256);
+```
+
+## Function Reference
+
+### Read-Only Functions
+
+<Tabs>
+  <Tab title="name()">
+    ```rust
+    pub view fn name() -> bytes
+    ```
+    
+    **Returns:** Human-readable token name (e.g., "OpenNet Coin")
+    
+    **View:** Does not modify state
+    
+    **Example:**
+    ```rust
+    let token_name = token.name();
+    // Returns: b"Paxeer Token"
+    ```
+  </Tab>
+
+  <Tab title="symbol()">
+    ```rust
+    pub view fn symbol() -> bytes
+    ```
+    
+    **Returns:** Token ticker symbol (e.g., "OPEN")
+    
+    **View:** Does not modify state
+    
+    **Example:**
+    ```rust
+    let token_symbol = token.symbol();
+    // Returns: b"PAX"
+    ```
+  </Tab>
+
+  <Tab title="decimals()">
+    ```rust
+    pub view fn decimals() -> u256
+    ```
+    
+    **Returns:** Number of decimal places (typically 6, 8, or 18)
+    
+    **View:** Does not modify state
+    
+    **Note:** Used for display only; all amounts are stored as base units
+    
+    **Example:**
+    ```rust
+    let decimals = token.decimals();
+    // Returns: 18
+    ```
+  </Tab>
+
+  <Tab title="total_supply()">
+    ```rust
+    pub view fn total_supply() -> u256
+    ```
+    
+    **Returns:** Total token supply in base units
+    
+    **View:** Does not modify state
+    
+    **Example:**
+    ```rust
+    let supply = token.total_supply();
+    // Returns: 1000000000000000000000000 (1M tokens with 18 decimals)
+    ```
+  </Tab>
+
+  <Tab title="balance_of()">
+    ```rust
+    pub view fn balance_of(owner: address) -> u256
+    ```
+    
+    **Parameters:**
+    - `owner` - Address to query
+    
+    **Returns:** Token balance of `owner` in base units
+    
+    **Example:**
+    ```rust
+    let balance = token.balance_of(0x1234...);
+    // Returns: 500000000000000000000 (500 tokens with 18 decimals)
+    ```
+  </Tab>
+
+  <Tab title="allowance()">
+    ```rust
+    pub view fn allowance(owner: address, spender: address) -> u256
+    ```
+    
+    **Parameters:**
+    - `owner` - Token owner's address
+    - `spender` - Authorized spender's address
+    
+    **Returns:** Remaining allowance for `spender` to spend on behalf of `owner`
+    
+    **Example:**
+    ```rust
+    let allowance = token.allowance(owner, spender);
+    // Returns: 1000000000000000000 (1 token with 18 decimals)
+    ```
+  </Tab>
+</Tabs>
+
+### State-Changing Functions
+
+<Tabs>
+  <Tab title="transfer()">
+    ```rust
+    pub fn transfer(to: address, amount: u256) -> bool
+    ```
+    
+    **Parameters:**
+    - `to` - Recipient address
+    - `amount` - Amount to transfer in base units
+    
+    **Returns:** `true` on success
+    
+    **Reverts if:**
+    - `to` is zero address
+    - `msg.sender` has insufficient balance
+    - Arithmetic overflow occurs
+    
+    **Emits:** `Transfer(msg.sender, to, amount)`
+    
+    **Example:**
+    ```rust
+    token.transfer(recipient, 1000000000000000000); // Transfer 1 token
+    ```
+  </Tab>
+
+  <Tab title="transfer_from()">
+    ```rust
+    pub fn transfer_from(from: address, to: address, amount: u256) -> bool
+    ```
+    
+    **Parameters:**
+    - `from` - Source address
+    - `to` - Recipient address
+    - `amount` - Amount to transfer in base units
+    
+    **Returns:** `true` on success
+    
+    **Reverts if:**
+    - `to` or `from` is zero address
+    - `from` has insufficient balance
+    - `msg.sender` has insufficient allowance
+    - Arithmetic overflow occurs
+    
+    **Effects:** Decreases `msg.sender`'s allowance by `amount`
+    
+    **Emits:** `Transfer(from, to, amount)`
+    
+    **Example:**
+    ```rust
+    token.transfer_from(owner, recipient, 1000000000000000000);
+    ```
+  </Tab>
+
+  <Tab title="approve()">
+    ```rust
+    pub fn approve(spender: address, amount: u256) -> bool
+    ```
+    
+    **Parameters:**
+    - `spender` - Address authorized to spend tokens
+    - `amount` - Allowance amount in base units
+    
+    **Returns:** `true` on success
+    
+    **Reverts if:**
+    - `spender` is zero address
+    
+    **Effects:** Sets allowance for `spender` to `amount`
+    
+    **Emits:** `Approval(msg.sender, spender, amount)`
+    
+    <Warning>
+    **Security:** To prevent front-running attacks, UIs should set allowance to 0 before changing to a new value.
+    </Warning>
+    
+    **Example:**
+    ```rust
+    token.approve(spender, 1000000000000000000); // Approve 1 token
+    ```
+  </Tab>
+</Tabs>
+
+## Reference Implementation
+
+Complete OPAX-28 token implementation in OpenLang:
+
+```rust
+contract OPAX28Token {
+    state name: bytes;  
+    state symbol: bytes;
+    state decimals: u256;
+    state total_supply: u256;
+    state balances: Map<address, u256>;
+    state allowances: Map<address, Map<address, u256>>;
+    
+    event Transfer(from: address indexed, to: address indexed, amount: u256);
+    event Approval(owner: address indexed, spender: address indexed, amount: u256);
+    
+    init(name_: bytes, symbol_: bytes, decimals_: u256, initial_supply: u256) {
+        name = name_;
+        symbol = symbol_;
+        decimals = decimals_;
+        total_supply = initial_supply;
+        balances[msg.sender] = initial_supply;
+        emit Transfer(address(0), msg.sender, initial_supply);
+    }
+    
+    pub view fn name() -> bytes {
+        return name;
+    }
+    
+    pub view fn symbol() -> bytes {
+        return symbol;
+    }
+    
+    pub view fn decimals() -> u256 {
+        return decimals;
+    }
+    
+    pub view fn total_supply() -> u256 {
+        return total_supply;
+    }
+    
+    pub view fn balance_of(owner: address) -> u256 {
+        return balances[owner];
+    }
+    
+    pub view fn allowance(owner: address, spender: address) -> u256 {
+        return allowances[owner][spender];
+    }
+    
+    pub fn transfer(to: address, amount: u256) -> bool {
+        require(to != address(0), "transfer to zero address");
+        require(balances[msg.sender] >= amount, "insufficient balance");
+        
+        balances[msg.sender] = balances[msg.sender] - amount;
+        balances[to] = balances[to] + amount;
+        
+        emit Transfer(msg.sender, to, amount);
+        return true;
+    }
+    
+    pub fn transfer_from(from: address, to: address, amount: u256) -> bool {
+        require(from != address(0), "transfer from zero address");
+        require(to != address(0), "transfer to zero address");
+        require(balances[from] >= amount, "insufficient balance");
+        require(allowances[from][msg.sender] >= amount, "insufficient allowance");
+        
+        balances[from] = balances[from] - amount;
+        balances[to] = balances[to] + amount;
+        allowances[from][msg.sender] = allowances[from][msg.sender] - amount;
+        
+        emit Transfer(from, to, amount);
+        return true;
+    }
+    
+    pub fn approve(spender: address, amount: u256) -> bool {
+        require(spender != address(0), "approve to zero address");
+        
+        allowances[msg.sender][spender] = amount;
+        
+        emit Approval(msg.sender, spender, amount);
+        return true;
+    }
+}
+```
+
+## Differences from ERC-20
+
+<CardGroup cols={2}>
+  <Card title="Type System" icon="code">
+    - **Explicit `bytes` type** for name/symbol instead of `string`
+    - **Native `u256`** for all amounts
+    - **Map types** instead of `mapping`
+  </Card>
+  <Card title="Syntax" icon="keyboard">
+    - **Rust-inspired**: `fn` instead of `function`
+    - **Return types**: `->` syntax
+    - **Explicit `emit`** keyword for events
+  </Card>
+  <Card title="Safety" icon="shield">
+    - **Built-in overflow protection** (no SafeMath needed)
+    - **Explicit `require()`** statements
+    - **Type safety** at compile time
+  </Card>
+  <Card title="Performance" icon="gauge">
+    - **Optimized for ArgusVM** register architecture
+    - **Better gas efficiency**
+    - **Native compilation** to AVM bytecode
+  </Card>
+</CardGroup>
+
+## Security Considerations
+
+### Overflow Protection
+
+<Note>
+OpenLang provides **automatic overflow protection**. All arithmetic operations revert on overflow/underflow—no need for SafeMath library!
+</Note>
+
+```rust
+// Safe by default - no overflow possible
+balances[msg.sender] = balances[msg.sender] - amount; // Reverts if underflow
+balances[to] = balances[to] + amount; // Reverts if overflow
+```
+
+### Zero Address Checks
+
+The reference implementation prevents transfers to/from the zero address, which would burn tokens unintentionally:
+
+```rust
+require(to != address(0), "transfer to zero address");
+require(from != address(0), "transfer from zero address");
+```
+
+### Approval Race Condition
+
+<Warning>
+To prevent front-running attacks when changing allowances:
+</Warning>
+
+1. **Check current allowance** before changing
+2. **Set allowance to 0**, then new value (two transactions)
+3. **Or use** `increase_allowance()` / `decrease_allowance()` extension (recommended)
+
+### Reentrancy Protection
+
+OPAX-28 functions are designed to be reentrancy-safe by following the **checks-effects-interactions** pattern:
+
+```rust
+// 1. Checks
+require(balances[from] >= amount, "insufficient balance");
+
+// 2. Effects (state changes first)
+balances[from] -= amount;
+balances[to] += amount;
+
+// 3. Interactions (external calls last, if any)
+emit Transfer(from, to, amount);
+```
+
+## Extensions
+
+### OPAX-28 Metadata (OPTIONAL)
+
+Provides additional token metadata:
+
+```rust
+pub view fn name() -> bytes;
+pub view fn symbol() -> bytes;
+pub view fn decimals() -> u256;
+```
+
+### OPAX-28 Capped (OPTIONAL)
+
+Limits total supply:
+
+```rust
+pub view fn cap() -> u256;
+```
+
+**Example:**
+```rust
+contract CappedToken is OPAX28Token {
+    state cap: u256;
+    
+    pub fn mint(to: address, amount: u256) {
+        require(total_supply + amount <= cap, "cap exceeded");
+        // ... mint logic
+    }
+}
+```
+
+### OPAX-28 Burnable (OPTIONAL)
+
+Allows token burning:
+
+```rust
+pub fn burn(amount: u256);
+pub fn burn_from(account: address, amount: u256);
+```
+
+**Example:**
+```rust
+pub fn burn(amount: u256) {
+    require(balances[msg.sender] >= amount, "insufficient balance");
+    balances[msg.sender] -= amount;
+    total_supply -= amount;
+    emit Transfer(msg.sender, address(0), amount);
+}
+```
+
+### OPAX-28 Mintable (OPTIONAL)
+
+Allows controlled minting:
+
+```rust
+pub fn mint(to: address, amount: u256);
+```
+
+**Example:**
+```rust
+pub fn mint(to: address, amount: u256) {
+    require(msg.sender == minter, "only minter");
+    balances[to] += amount;
+    total_supply += amount;
+    emit Transfer(address(0), to, amount);
+}
+```
+
+## Backward Compatibility
+
+<Warning>
+OPAX-28 is **NOT compatible** with ERC-20 at the bytecode level due to different VM architectures (ArgusVM vs EVM).
+</Warning>
+
+However, compatibility is maintained at the interface level:
+
+- **Function selectors**: Use FNV-1a (may upgrade to keccak256)
+- **Event signatures**: Similar for off-chain indexing
+- **ABI encoding**: Follows 32-byte word alignment
+
+### Cross-Chain Bridges
+
+Cross-chain bridges must implement explicit translation layers:
+
+<Steps>
+  <Step title="Lock OPAX-28 Tokens">
+    Lock tokens on Paxeer Network
+  </Step>
+
+  <Step title="Bridge Translation">
+    Bridge translates OPAX-28 to ERC-20 format
+  </Step>
+
+  <Step title="Mint on Destination">
+    Mint equivalent ERC-20 tokens on destination chain
+  </Step>
+
+  <Step title="Reverse Process">
+    Burn ERC-20, unlock OPAX-28 on Paxeer
+  </Step>
+</Steps>
+
+## Integration Examples
+
+### Deploying an OPAX-28 Token
+
+```rust
+// Deploy with OpenLang
+contract MyToken is OPAX28Token {
+    init() {
+        super.init(
+            b"My Token",
+            b"MTK",
+            18,
+            1000000000000000000000000 // 1M tokens
+        );
+    }
+}
+```
+
+### Interacting with OPAX-28 Tokens
+
+```rust
+// Transfer tokens
+token.transfer(recipient, 1000000000000000000); // 1 token
+
+// Check balance
+let balance = token.balance_of(msg.sender);
+
+// Approve spending
+token.approve(spender, 5000000000000000000); // 5 tokens
+
+// Transfer from (by approved spender)
+token.transfer_from(owner, recipient, 1000000000000000000);
+```
+
+### DEX Integration
+
+```rust
+contract SimpleDEX {
+    state token: OPAX28Token;
+    state eth_reserve: u256;
+    state token_reserve: u256;
+    
+    pub fn swap_eth_for_tokens() -> u256 {
+        let eth_amount = msg.value;
+        let token_amount = (eth_amount * token_reserve) / eth_reserve;
+        
+        require(token.balance_of(address(this)) >= token_amount, "insufficient liquidity");
+        
+        eth_reserve += eth_amount;
+        token_reserve -= token_amount;
+        
+        token.transfer(msg.sender, token_amount);
+        return token_amount;
+    }
+}
+```
+
+## Gas Costs
+
+OPAX-28 operations are optimized for ArgusVM:
+
+| Operation | Gas Cost (Estimated) |
+|-----------|---------------------|
+| `transfer()` | ~21,000 gas |
+| `transfer_from()` | ~35,000 gas |
+| `approve()` | ~46,000 gas |
+| `balance_of()` | ~2,100 gas |
+| `allowance()` | ~2,100 gas |
+
+<Note>
+Gas costs are lower than ERC-20 due to register-based architecture and optimized bytecode.
+</Note>
+
+## Testing
+
+### Test Suite
+
+Comprehensive test suite covering:
+
+- ✅ Basic transfers
+- ✅ Allowance and `transfer_from`
+- ✅ Edge cases (zero address, insufficient balance)
+- ✅ Overflow protection
+- ✅ Event emission
+- ✅ Reentrancy protection
+
+### Example Test
+
+```rust
+#[test]
+fn test_transfer() {
+    let token = deploy_token();
+    let alice = address(0x1);
+    let bob = address(0x2);
+    
+    // Initial balance
+    assert_eq(token.balance_of(alice), 1000);
+    
+    // Transfer
+    token.transfer(bob, 100);
+    
+    // Check balances
+    assert_eq(token.balance_of(alice), 900);
+    assert_eq(token.balance_of(bob), 100);
+}
+```
+
+## Resources
+
+<CardGroup cols={2}>
+  <Card
+    title="ArgusVM Documentation"
+    icon="microchip"
+    href="/argus-vm"
+  >
+    Learn about the execution environment
+  </Card>
+  <Card
+    title="OpenLang Guide"
+    icon="code"
+    href="/openlang"
+  >
+    Master OpenLang syntax
+  </Card>
+  <Card
+    title="Smart Contracts"
+    icon="file-contract"
+    href="/contracts"
+  >
+    Deploy contracts on Paxeer
+  </Card>
+  <Card
+    title="PaxDex Protocol"
+    icon="arrow-right-arrow-left"
+    href="/paxdex"
+  >
+    Build DEXes with OPAX-28
+  </Card>
+</CardGroup>
+
+## Status
+
+**Standard Status:** Draft  
+**Created:** 2025-11-04  
+**Category:** Token Standard  
+**Network:** Paxeer Network & OpenNet
+
+## Copyright
+
+Copyright (C) 2025 Paxeer Foundation | OpenLabs LTD. This document is licensed under CC0 1.0 Universal.
+
+---
+
+<Note>
+**Join the Ecosystem:** OPAX-28 is part of Paxeer's self-sustainable infrastructure. Build native tokens optimized for ArgusVM and experience the future of blockchain standards!
+</Note>
+

@@ -1,0 +1,40 @@
+---
+title: "EVM Extensions"
+description: "Precompiled contracts and Cosmos module extensions available on HyperPaxeer mainnet"
+icon: "plug"
+---
+
+## Available extensions
+
+HyperPaxeer is mainnet-only today. The table below lists the extensions available on HyperPaxeer mainnet.
+
+| Address | Name | Stateful | Standard / source | Mainnet |
+|---|---|---:|---|---|
+| `0x0000000000000000000000000000000000000001` | ecRecover | No | Ethereum precompile | Active |
+| `0x0000000000000000000000000000000000000002` | SHA256 Hash | No | Ethereum precompile | Active |
+| `0x0000000000000000000000000000000000000003` | RIPEMD-160 Hash | No | Ethereum precompile | Active |
+| `0x0000000000000000000000000000000000000004` | Data Copy | No | Ethereum precompile | Active |
+| `0x0000000000000000000000000000000000000005` | ExpMod | No | [EIP-198](https://eips.ethereum.org/EIPS/eip-198) | Active |
+| `0x0000000000000000000000000000000000000006` | BN256Add | No | [EIP-196](https://eips.ethereum.org/EIPS/eip-196) | Active |
+| `0x0000000000000000000000000000000000000007` | BN256ScalarMul | No | [EIP-196](https://eips.ethereum.org/EIPS/eip-196) | Active |
+| `0x0000000000000000000000000000000000000008` | BN256Pairing | No | [EIP-197](https://eips.ethereum.org/EIPS/eip-197) | Active |
+| `0x0000000000000000000000000000000000000009` | Blake2F | No | [EIP-152](https://eips.ethereum.org/EIPS/eip-152) | Active |
+| `0x0000000000000000000000000000000000000400` | Bech32 encoding | No | HyperPaxeer extension | Active |
+| `0x0000000000000000000000000000000000000800` | Staking module | Yes | Cosmos SDK extension | Active |
+| `0x0000000000000000000000000000000000000801` | Distribution module | Yes | Cosmos SDK extension | Active |
+| `0x0000000000000000000000000000000000000802` | IBC Transfer | Yes | Cosmos SDK extension | Active |
+| `0x0000000000000000000000000000000000000803` | Vesting module | Yes | Cosmos SDK extension | Active |
+| `0x0000000000000000000000000000000000000901` | PaxSpot OROBResolver | No | PaxSpot precompile | Active |
+| `0x0000000000000000000000000000000000000902` | PaxSpot BatchClearing | No | PaxSpot precompile | Active |
+| `0x0000000000000000000000000000000000000903` | PaxSpot OracleAggregator / VOM | Mixed | PaxSpot + `x/paxoracle` precompile | Active |
+| `0x0000000000000000000000000000000000000904` | PaxSpot PoFQScorer | No | PaxSpot precompile | Active |
+
+<Info>
+Use the [PaxSpot precompile reference](/paxspot/precompiles) for Solidity and frontend examples for `0x901` through `0x904`.
+</Info>
+
+## Further reading
+
+- [EVM precompiled contracts](https://www.evm.codes/precompiled)
+- [Current network facts](/current-network)
+- [PaxSpot precompiles](/paxspot/precompiles)

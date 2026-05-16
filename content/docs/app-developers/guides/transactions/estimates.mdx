@@ -1,0 +1,409 @@
+---
+title: "Estimating Transaction Costs"
+description: "Learn how to properly estimate the total cost of a transaction on HyperPaxeer"
+icon: "calculator"
+---
+
+<Info>
+Estimating transaction costs on HyperPaxeer is exactly the same as on Ethereum. You can use the same tools and methods you're already familiar with.
+</Info>
+
+## Overview
+
+It's important to properly estimate the cost of a transaction on HyperPaxeer before submitting it. This guide shows you how to estimate the execution gas fee for your transactions.
+
+## Execution Gas Fee
+
+A transaction's execution gas fee is equal to the amount of gas used multiplied by the gas price attached to the transaction.
+
+```
+executionGasFee = gasUsed × (baseFee + priorityFee)
+```
+
+## Estimation Steps
+
+<Steps>
+  <Step title="Estimate the Gas Limit">
+    Use `eth_estimateGas` to estimate how much gas your transaction will consume:
+    
+    <CodeGroup>
+    
+    ```javascript ethers.js
+    import { ethers } from 'ethers';
+
+    const provider = new ethers.JsonRpcProvider('https://public-rpc.paxeer.app/rpc');
+
+    async function estimateGas(tx) {
+      const gasEstimate = await provider.estimateGas(tx);
+      console.log('Estimated gas:', gasEstimate.toString());
+      return gasEstimate;
+    }
+
+    // Example: ETH transfer
+    const tx = {
+      to: '0x...',
+      value: ethers.parseEther('1.0'),
+    };
+
+    const gas = await estimateGas(tx);
+    ```
+    
+    ```typescript viem
+    import { createPublicClient, http, parseEther } from 'viem';
+    import { paxeer } from './chains';
+
+    const client = createPublicClient({
+      chain: paxeer,
+      transport: http(),
+    });
+
+    async function estimateGas(tx) {
+      const gasEstimate = await client.estimateGas(tx);
+      console.log('Estimated gas:', gasEstimate);
+      return gasEstimate;
+    }
+
+    // Example: ETH transfer
+    const gas = await estimateGas({
+      to: '0x...',
+      value: parseEther('1'),
+    });
+    ```
+    
+    ```python web3.py
+    from web3 import Web3
+
+    w3 = Web3(Web3.HTTPProvider('https://public-rpc.paxeer.app/rpc'))
+
+    # Estimate gas
+    tx = {
+        'to': '0x...',
+        'value': w3.to_wei(1, 'ether'),
+    }
+
+    gas_estimate = w3.eth.estimate_gas(tx)
+    print(f'Estimated gas: {gas_estimate}')
+    ```
+    
+    </CodeGroup>
+    
+    <Tip>
+    HyperPaxeer is EVM equivalent, so gas estimates will match Ethereum exactly. A transaction that uses 100,000 gas on Ethereum will use 100,000 gas on HyperPaxeer.
+    </Tip>
+  </Step>
+
+  <Step title="Get Current Fee Data">
+    Retrieve current base fee and recommended priority fee:
+    
+    <CodeGroup>
+    
+    ```javascript ethers.js
+    async function getFeeData() {
+      const feeData = await provider.getFeeData();
+      
+      return {
+        maxFeePerGas: feeData.maxFeePerGas,
+        maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
+        gasPrice: feeData.gasPrice,
+      };
+    }
+
+    const fees = await getFeeData();
+    console.log('Max fee per gas:', ethers.formatUnits(fees.maxFeePerGas, 'gwei'), 'gwei');
+    console.log('Priority fee:', ethers.formatUnits(fees.maxPriorityFeePerGas, 'gwei'), 'gwei');
+    ```
+    
+    ```typescript viem
+    async function getFeeData() {
+      const [gasPrice, maxPriorityFee] = await Promise.all([
+        client.getGasPrice(),
+        client.estimateMaxPriorityFeePerGas(),
+      ]);
+      
+      return {
+        gasPrice,
+        maxPriorityFee,
+      };
+    }
+
+    const fees = await getFeeData();
+    console.log('Gas price:', fees.gasPrice);
+    console.log('Max priority fee:', fees.maxPriorityFee);
+    ```
+    
+    ```python web3.py
+    # Get fee data
+    gas_price = w3.eth.gas_price
+    max_priority_fee = w3.eth.max_priority_fee
+
+    print(f'Gas price: {w3.from_wei(gas_price, "gwei")} gwei')
+    print(f'Max priority fee: {w3.from_wei(max_priority_fee, "gwei")} gwei')
+    ```
+    
+    </CodeGroup>
+  </Step>
+
+  <Step title="Calculate Total Cost">
+    Multiply gas estimate by gas price:
+    
+    ```javascript
+    async function estimateTotalCost(tx) {
+      // Get gas estimate
+      const gasEstimate = await provider.estimateGas(tx);
+      
+      // Get fee data
+      const feeData = await provider.getFeeData();
+      
+      // Calculate cost with max fee
+      const maxCost = gasEstimate * feeData.maxFeePerGas;
+      
+      // Calculate likely cost with current base fee
+      const likelyCost = gasEstimate * (feeData.maxFeePerGas - feeData.maxPriorityFeePerGas);
+      
+      return {
+        gasEstimate: gasEstimate.toString(),
+        maxFeePerGas: ethers.formatUnits(feeData.maxFeePerGas, 'gwei'),
+        maxCostHPX: ethers.formatEther(maxCost),
+        likelyCostHPX: ethers.formatEther(likelyCost),
+      };
+    }
+
+    const estimate = await estimateTotalCost(tx);
+    console.log('Cost estimate:', estimate);
+    ```
+  </Step>
+</Steps>
+
+## Complete Example
+
+Here's a complete example of estimating costs for a token transfer:
+
+```typescript CompleteEstimate.ts
+import { ethers } from 'ethers';
+
+const provider = new ethers.JsonRpcProvider('https://public-rpc.paxeer.app/rpc');
+
+const ERC20_ABI = [
+  'function transfer(address to, uint256 amount) returns (bool)',
+];
+
+async function estimateTokenTransfer(
+  tokenAddress: string,
+  to: string,
+  amount: string
+) {
+  try {
+    // Create contract instance
+    const token = new ethers.Contract(tokenAddress, ERC20_ABI, provider);
+    
+    // Estimate gas for the transfer
+    const gasEstimate = await token.transfer.estimateGas(to, amount);
+    
+    // Get current fee data
+    const feeData = await provider.getFeeData();
+    
+    // Add 20% buffer to gas estimate
+    const gasLimit = gasEstimate * 120n / 100n;
+    
+    // Calculate max cost
+    const maxCost = gasLimit * feeData.maxFeePerGas;
+    
+    // Calculate likely cost (using current base fee)
+    const currentBaseFee = feeData.maxFeePerGas - feeData.maxPriorityFeePerGas;
+    const priorityFee = feeData.maxPriorityFeePerGas;
+    const likelyCost = gasLimit * (currentBaseFee + priorityFee);
+    
+    return {
+      gasEstimate: gasEstimate.toString(),
+      gasLimit: gasLimit.toString(),
+      baseFee: ethers.formatUnits(currentBaseFee, 'gwei') + ' gwei',
+      priorityFee: ethers.formatUnits(priorityFee, 'gwei') + ' gwei',
+      maxFeePerGas: ethers.formatUnits(feeData.maxFeePerGas, 'gwei') + ' gwei',
+      maxCostHPX: ethers.formatEther(maxCost),
+      likelyCostHPX: ethers.formatEther(likelyCost),
+    };
+  } catch (error) {
+    console.error('Estimation failed:', error);
+    throw error;
+  }
+}
+
+// Usage
+const estimate = await estimateTokenTransfer(
+  '0xTokenAddress',
+  '0xRecipient',
+  ethers.parseUnits('100', 18).toString()
+);
+
+console.log('Transfer Cost Estimate:', estimate);
+```
+
+## React Hook for Cost Estimation
+
+```typescript useEstimateCost.ts
+import { useState, useEffect } from 'react';
+import { usePublicClient } from 'wagmi';
+import { formatEther } from 'viem';
+
+export function useEstimateCost(tx: any) {
+  const [estimate, setEstimate] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const client = usePublicClient();
+
+  useEffect(() => {
+    if (!tx || !client) return;
+
+    async function estimateCost() {
+      try {
+        const [gasEstimate, gasPrice] = await Promise.all([
+          client.estimateGas(tx),
+          client.getGasPrice(),
+        ]);
+
+        const cost = gasEstimate * gasPrice;
+
+        setEstimate({
+          gas: gasEstimate.toString(),
+          gasPrice: gasPrice.toString(),
+          costWei: cost.toString(),
+          costHPX: formatEther(cost),
+        });
+      } catch (error) {
+        console.error('Cost estimation failed:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    estimateCost();
+  }, [tx, client]);
+
+  return { estimate, loading };
+}
+```
+
+## Gas Estimation Best Practices
+
+<AccordionGroup>
+  <Accordion title="Always Add a Buffer" icon="plus">
+    Gas estimates can be slightly inaccurate. Add a 10-20% buffer:
+    
+    ```javascript
+    const gasEstimate = await provider.estimateGas(tx);
+    const gasLimit = gasEstimate * 120n / 100n; // 20% buffer
+    ```
+  </Accordion>
+
+  <Accordion title="Handle Estimation Failures" icon="triangle-exclamation">
+    `eth_estimateGas` will revert if the transaction would fail:
+    
+    ```javascript
+    try {
+      const gasEstimate = await provider.estimateGas(tx);
+    } catch (error) {
+      // Transaction would fail - check error message
+      console.error('Transaction would revert:', error.message);
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Consider State Changes" icon="database">
+    Gas estimates assume current blockchain state. If state changes before your transaction is mined, actual gas usage may differ:
+    
+    ```javascript
+    // Get estimate close to submission time
+    const gasEstimate = await provider.estimateGas(tx);
+    
+    // Send transaction immediately
+    const txResponse = await signer.sendTransaction({
+      ...tx,
+      gasLimit: gasEstimate * 120n / 100n,
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="Test with Real Conditions" icon="flask">
+    Test gas estimates under various conditions:
+    - Different account balances
+    - Different contract states
+    - Edge cases and error scenarios
+  </Accordion>
+</AccordionGroup>
+
+## Checking Historical Fees
+
+Analyze historical fee data to predict future costs:
+
+```javascript
+async function analyzeFeeTrends() {
+  // Get fee history for last 100 blocks
+  const feeHistory = await provider.send('eth_feeHistory', [
+    '0x64', // 100 blocks in hex
+    'latest',
+    [25, 50, 75] // 25th, 50th, 75th percentile
+  ]);
+
+  const baseFees = feeHistory.baseFeePerGas.map(fee => 
+    ethers.formatUnits(fee, 'gwei')
+  );
+
+  console.log('Average base fee:', 
+    baseFees.reduce((a, b) => parseFloat(a) + parseFloat(b)) / baseFees.length
+  );
+  
+  return feeHistory;
+}
+```
+
+## Tools & Resources
+
+<CardGroup cols={2}>
+  <Card
+    title="Gas Tracker"
+    icon="chart-line"
+    href="https://paxscan.io/stats"
+  >
+    Monitor current gas prices
+  </Card>
+  <Card
+    title="Fee Calculator"
+    icon="calculator"
+    href="https://paxscan.io/gas-tracker"
+  >
+    Calculate transaction costs
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Transaction Fees"
+    icon="money-bill"
+    href="/app-developers/guides/transactions/fees"
+  >
+    Understand how fees work
+  </Card>
+  <Card
+    title="Gas Parameters"
+    icon="sliders"
+    href="/app-developers/guides/transactions/parameters"
+  >
+    Set optimal gas parameters
+  </Card>
+  <Card
+    title="Examples"
+    icon="code"
+    href="/examples"
+  >
+    View complete code examples
+  </Card>
+  <Card
+    title="API Reference"
+    icon="book"
+    href="/api-reference"
+  >
+    Explore all RPC methods
+  </Card>
+</CardGroup>
+

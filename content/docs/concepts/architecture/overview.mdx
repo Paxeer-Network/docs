@@ -1,0 +1,168 @@
+---
+title: "Architecture Overview"
+description: "Dual-VM design, consensus model, custom precompiles, and module architecture of HyperPaxeer"
+icon: "sitemap"
+---
+
+## Overview
+
+HyperPaxeer is a sovereign Proof-of-Stake blockchain running on the **Alexandria Fork** (Cosmos SDK + CometBFT). It extends the standard EVM-on-Cosmos model with a second execution environment — the **Argus Virtual Machine (AVM)** — and four custom stateful/stateless precompiles that accelerate exchange-critical computation.
+
+---
+
+## Dual-VM Design
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                       HyperPaxeer                        │
+│                                                                  │
+│  ┌──────────────────────────┐    ┌────────────────────────────┐  │
+│  │     EVM OS Layer          │    │     Argus VM (AVM)         │  │
+│  │     Alexandria Fork       │◄──►│     C++ runtime            │  │
+│  │                           │    │                            │  │
+│  │  Solidity contracts       │    │  ArgLang scripts (.arg)    │  │
+│  │  Custom precompiles       │    │  Risk engine               │  │
+│  │  (0x901 – 0x904)         │    │  Capital orchestration     │  │
+│  │  x/evm, x/erc20 modules  │    │  Smart wallet lifecycle    │  │
+│  │  JSON-RPC / gRPC / REST   │    │  .avm bytecode execution   │  │
+│  └──────────────────────────┘    └────────────────────────────┘  │
+│                                                                  │
+│  CometBFT v0.38.15 ·  Cosmos SDK  ·  IBC  ·  x/paxoracle       │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+- **EVM OS** — the blockchain shell: consensus, networking, EVM execution, standard Ethereum tooling
+- **AVM** — the value engine: capital allocation, drawdown policy, funded smart-wallet management
+- **Communication boundary** — on-chain interfaces `IPaxSpotReader` and `IAllowanceProvider`
+
+---
+
+## Consensus
+
+| Property | Value |
+|----------|-------|
+| **Engine** | CometBFT v0.38.15 (Tendermint-based BFT) |
+| **Consensus** | Proof-of-Stake with instant finality |
+| **Block time** | 277 ms average, 341 ms p95 |
+| **Validators** | 10 active with 5.9%-13.1% voting-power range |
+| **Finality** | Single-block (no reorgs under 2/3 honest assumption) |
+
+CometBFT's `PrepareProposal` and `ProcessProposal` hooks allow validators to enforce fair transaction ordering at the consensus level — providing MEV protection without external infrastructure.
+
+---
+
+## Custom Precompiles
+
+Four precompiled contracts live at reserved addresses and execute native Go code at consensus speed:
+
+| Address | Name | Type | Purpose |
+|---------|------|------|---------|
+| `0x901` | **OROBResolver** | Stateless | Convert basis-point offsets to absolute prices and back |
+| `0x902` | **BatchClearing** | Stateless | Compute uniform clearing price for sealed-bid auctions |
+| `0x903` | **OracleAggregator** | Stateful | Read/write validator price submissions via `x/paxoracle` keeper |
+| `0x904` | **PoFQScorer** | Stateless | Score fill quality against oracle at execution time |
+
+Precompiles use the HyperPaxeer stateful-precompile framework (`cmn.Precompile` embedded struct with `RunSetup` for SDK context access). Solidity interfaces are at `contracts/paxspot/src/interfaces/`.
+
+---
+
+## Cosmos SDK Modules
+
+### Standard Modules (Alexandria Fork)
+
+`x/evm`, `x/erc20`, `x/feemarket`, `x/vesting`, `x/inflation`, `x/epochs`, `x/staking`, `x/distribution`, `x/gov`, `x/ibc`
+
+### Custom Module: x/paxoracle
+
+Validator Oracle Module — validators submit prices via the `0x903` precompile's `submitPrice(bytes32, int256, uint256)` method. The module stores submissions in a KV store and aggregates them:
+
+- **GetMedianPrice**: filters stale submissions (>15 blocks), requires minimum quorum, computes confidence-weighted median
+- **IsValidator**: verifies submitter is an active validator via `x/staking` keeper
+- **Parameters**: `staleness_threshold` (default 15 blocks), `min_quorum` (default 1)
+
+---
+
+## Chain-Level Advantages
+
+These capabilities are possible because HyperPaxeer is a sovereign chain, not a shared L1/L2:
+
+1. **Custom precompiles** — move expensive computation (batch clearing, oracle aggregation) to native Go. Near-zero gas for critical operations
+2. **Transaction ordering control** — `PrepareProposal`/`ProcessProposal` enforce fair ordering. No front-running at the consensus level
+3. **Native gas policy** — gas prices can be set to near-zero for exchange operations or subsidised for funded smart wallets
+4. **IBC interoperability** — native token transfers from Osmosis, Injective, Noble (USDC), and other Cosmos chains. No bridges, no wrapping
+5. **Validator-integrated keepers** — validators run keeper logic as sidecars, making conditional order execution a first-class chain service
+
+---
+
+## Node Architecture
+
+Nodes are deployed via the `hpx` CLI as Docker containers. Two node types:
+
+| Type | Purpose | Configuration |
+|------|---------|---------------|
+| **RPC** | Serve JSON-RPC, gRPC, REST, WebSocket | Full indexing, all endpoints exposed |
+| **Validator** | Produce blocks, participate in consensus | Default pruning, optimised for consensus |
+
+Each node runs under `/root/hyperpax-nodes/<name>/` with an FD Guardian sidecar that monitors file descriptors and auto-restarts on leak detection.
+
+### Endpoints per Node
+
+| Protocol | Default Port |
+|----------|-------------|
+| P2P | 26656 |
+| CometBFT RPC | 26657 |
+| REST API | 1317 |
+| gRPC | 9090 |
+| JSON-RPC (EVM) | 8545 |
+| WebSocket | 8546 |
+
+Ports auto-increment for multi-node deployments on a single server.
+
+---
+
+## Upgrade Process
+
+Network upgrades are coordinated across all validators:
+
+1. Halt all validators at a target block height
+2. Back up chain state from one validator
+3. Distribute new binary as a Docker image
+4. Fix any app-hash or priv_validator mismatches
+5. Restart all validators simultaneously
+
+The `hpx` CLI and `validate/upgrades/` docs cover automated and manual upgrade procedures.
+
+---
+
+## Resources
+
+<CardGroup cols={2}>
+  <Card
+    title="Network Status"
+    icon="signal"
+    href="/network-status"
+  >
+    Live validator health, node latency, and block timing
+  </Card>
+  <Card
+    title="Run a Node"
+    icon="server"
+    href="/validate/setup/run-a-validator"
+  >
+    Deploy RPC or Validator nodes with the hpx CLI
+  </Card>
+  <Card
+    title="Argus VM"
+    icon="microchip"
+    href="/argus-vm"
+  >
+    Register architecture, ISA, gas model, and ArgLang
+  </Card>
+  <Card
+    title="PaxSpot"
+    icon="chart-mixed"
+    href="/paxspot"
+  >
+    Spot exchange leveraging all four precompiles
+  </Card>
+</CardGroup>

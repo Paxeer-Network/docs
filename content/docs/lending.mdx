@@ -1,0 +1,517 @@
+---
+title: "Lending Protocol"
+description: "Decentralized lending and borrowing protocol with credit scores and dynamic interest rates"
+icon: "coins"
+---
+
+## Overview
+
+Decentralized lending and borrowing protocol with credit scores and dynamic interest rates on Paxeer Network.
+
+<CardGroup cols={3}>
+  <Card title="Dynamic APY" icon="chart-line">
+    Competitive yields
+  </Card>
+  <Card title="Credit Scoring" icon="shield-check">
+    On-chain reputation
+  </Card>
+  <Card title="Multi-Asset" icon="layer-group">
+    Multiple tokens
+  </Card>
+</CardGroup>
+
+## Quick Start
+
+<Info>
+**API Base URL:** `https://lending-api.paxeer.app`
+</Info>
+
+```bash Test Connection
+curl https://lending-api.paxeer.app/api/pools
+```
+
+## Key Features
+
+<AccordionGroup>
+  <Accordion title="Competitive APY" icon="trending-up">
+    Earn attractive yields by supplying assets to lending pools. Interest rates adjust dynamically based on utilization.
+  </Accordion>
+
+  <Accordion title="Credit Scoring" icon="shield">
+    On-chain credit scores determine borrowing power and rates. Build your reputation over time.
+  </Accordion>
+
+  <Accordion title="Multi-Asset Support" icon="coins">
+    Deposit and borrow multiple crypto assets including WETH, USDT, USDC, and more.
+  </Accordion>
+
+  <Accordion title="Secure Protocol" icon="lock">
+    Battle-tested smart contracts with comprehensive security measures and audits.
+  </Accordion>
+</AccordionGroup>
+
+## REST API
+
+### Get All Lending Pools
+
+<ParamField path="method" type="string" default="GET">
+  GET /api/pools
+</ParamField>
+
+Retrieves all available lending pools with current statistics.
+
+<CodeGroup>
+
+```bash cURL
+curl https://lending-api.paxeer.app/api/pools
+```
+
+```javascript JavaScript
+const response = await fetch('https://lending-api.paxeer.app/api/pools');
+const pools = await response.json();
+console.log(pools);
+```
+
+```python Python
+import requests
+
+response = requests.get('https://lending-api.paxeer.app/api/pools')
+pools = response.json()
+print(pools)
+```
+
+</CodeGroup>
+
+**Response:**
+
+```json
+[
+  {
+    "assetAddress": "0xD0C1a714c46c364DBDd4E0F7b0B6bA5354460dA7",
+    "pTokenAddress": "0xE3Df3966007483e8076230e6E7AA381D3bAc52C0",
+    "symbol": "WETH",
+    "decimals": 18,
+    "totalSupplied": "209.119273268701533652",
+    "supplyApy": "5.21",
+    "borrowApy": "7.85"
+  }
+]
+```
+
+---
+
+### Get User Lending Positions
+
+<ParamField path="method" type="string" default="GET">
+  GET /api/user/:address
+</ParamField>
+
+Get user-specific data including credit score and borrowing power.
+
+<ParamField path="address" type="string" required>
+  User wallet address
+</ParamField>
+
+<CodeGroup>
+
+```bash cURL
+curl https://lending-api.paxeer.app/api/user/0x2fccd991Ecc9bEe62Bd10d751A5c5492e2a788C7
+```
+
+```javascript JavaScript
+const address = '0x2fccd991Ecc9bEe62Bd10d751A5c5492e2a788C7';
+const response = await fetch(`https://lending-api.paxeer.app/api/user/${address}`);
+const userData = await response.json();
+```
+
+</CodeGroup>
+
+**Response:**
+
+```json
+{
+  "address": "0x2fccd991Ecc9bEe62Bd10d751A5c5492e2a788C7",
+  "creditScore": 825,
+  "borrowingPower": "15000.0",
+  "amountBorrowed": "5000.0",
+  "availableToBorrow": "10000.0"
+}
+```
+
+## Smart Contract Functions
+
+### deposit()
+
+Deposit assets into the lending pool to earn interest.
+
+```solidity
+function deposit(
+  address asset,
+  uint256 amount
+) external
+```
+
+<Warning>
+Requires `approve()` call first to allow the lending pool to transfer your tokens.
+</Warning>
+
+**Example:**
+
+```javascript
+import { ethers } from 'ethers';
+
+const LENDING_POOL_ADDRESS = '0x...';
+
+async function deposit(assetAddress, amount) {
+  const signer = await provider.getSigner();
+  
+  // 1. Approve token spending
+  const token = new ethers.Contract(assetAddress, ERC20_ABI, signer);
+  const approveTx = await token.approve(LENDING_POOL_ADDRESS, amount);
+  await approveTx.wait();
+  
+  // 2. Deposit
+  const lendingPool = new ethers.Contract(
+    LENDING_POOL_ADDRESS,
+    LENDING_POOL_ABI,
+    signer
+  );
+  const depositTx = await lendingPool.deposit(assetAddress, amount);
+  await depositTx.wait();
+}
+```
+
+---
+
+### withdraw()
+
+Withdraw your deposited assets plus earned interest.
+
+```solidity
+function withdraw(
+  address asset,
+  uint256 amount
+) external
+```
+
+**Example:**
+
+```javascript
+async function withdraw(assetAddress, amount) {
+  const signer = await provider.getSigner();
+  const lendingPool = new ethers.Contract(
+    LENDING_POOL_ADDRESS,
+    LENDING_POOL_ABI,
+    signer
+  );
+  
+  const withdrawTx = await lendingPool.withdraw(assetAddress, amount);
+  await withdrawTx.wait();
+}
+```
+
+---
+
+### borrow()
+
+Borrow assets based on your credit score and collateral.
+
+```solidity
+function borrow(
+  address asset,
+  uint256 amount
+) external
+```
+
+**Example:**
+
+```javascript
+async function borrow(assetAddress, amount) {
+  const signer = await provider.getSigner();
+  const lendingPool = new ethers.Contract(
+    LENDING_POOL_ADDRESS,
+    LENDING_POOL_ABI,
+    signer
+  );
+  
+  const borrowTx = await lendingPool.borrow(assetAddress, amount);
+  await borrowTx.wait();
+}
+```
+
+---
+
+### repay()
+
+Repay your borrowed amount to close or reduce your loan.
+
+```solidity
+function repay(
+  address asset,
+  uint256 amount
+) external
+```
+
+<Warning>
+Requires `approve()` call first to allow the lending pool to transfer repayment tokens.
+</Warning>
+
+**Example:**
+
+```javascript
+async function repay(assetAddress, amount) {
+  const signer = await provider.getSigner();
+  
+  // 1. Approve token spending
+  const token = new ethers.Contract(assetAddress, ERC20_ABI, signer);
+  const approveTx = await token.approve(LENDING_POOL_ADDRESS, amount);
+  await approveTx.wait();
+  
+  // 2. Repay
+  const lendingPool = new ethers.Contract(
+    LENDING_POOL_ADDRESS,
+    LENDING_POOL_ABI,
+    signer
+  );
+  const repayTx = await lendingPool.repay(assetAddress, amount);
+  await repayTx.wait();
+}
+```
+
+## Integration Guide
+
+<Steps>
+  <Step title="Fetch Pool Data">
+    Get available pools and their current rates:
+    
+    ```javascript
+    const pools = await fetch('https://lending-api.paxeer.app/api/pools')
+      .then(res => res.json());
+    ```
+  </Step>
+
+  <Step title="Approve Token Spending">
+    Allow the lending pool to transfer your tokens:
+    
+    ```javascript
+    const token = new ethers.Contract(assetAddress, ERC20_ABI, signer);
+    await token.approve(LENDING_POOL_ADDRESS, amount);
+    ```
+  </Step>
+
+  <Step title="Execute Action">
+    Deposit, borrow, withdraw, or repay:
+    
+    ```javascript
+    const lendingPool = new ethers.Contract(
+      LENDING_POOL_ADDRESS,
+      LENDING_POOL_ABI,
+      signer
+    );
+    
+    // Deposit
+    await lendingPool.deposit(assetAddress, amount);
+    
+    // Or Borrow
+    await lendingPool.borrow(assetAddress, amount);
+    ```
+  </Step>
+
+  <Step title="Monitor User Data">
+    Track your positions and credit score:
+    
+    ```javascript
+    const userData = await fetch(
+      `https://lending-api.paxeer.app/api/user/${userAddress}`
+    ).then(res => res.json());
+    
+    console.log('Credit Score:', userData.creditScore);
+    console.log('Borrowing Power:', userData.borrowingPower);
+    ```
+  </Step>
+</Steps>
+
+## Contract ABI
+
+<Accordion title="LendingPool ABI">
+
+```json
+[
+  {
+    "inputs": [
+      { "internalType": "address", "name": "asset", "type": "address" },
+      { "internalType": "uint256", "name": "amount", "type": "uint256" }
+    ],
+    "name": "deposit",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "asset", "type": "address" },
+      { "internalType": "uint256", "name": "amount", "type": "uint256" }
+    ],
+    "name": "withdraw",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "asset", "type": "address" },
+      { "internalType": "uint256", "name": "amount", "type": "uint256" }
+    ],
+    "name": "borrow",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "asset", "type": "address" },
+      { "internalType": "uint256", "name": "amount", "type": "uint256" }
+    ],
+    "name": "repay",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]
+```
+
+</Accordion>
+
+## React Hook Example
+
+```typescript useLending.ts
+import { useState, useEffect } from 'react';
+
+export function useLendingPools() {
+  const [pools, setPools] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchPools() {
+      try {
+        const response = await fetch('https://lending-api.paxeer.app/api/pools');
+        const data = await response.json();
+        setPools(data);
+      } catch (error) {
+        console.error('Error fetching pools:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchPools();
+    const interval = setInterval(fetchPools, 30000); // Refresh every 30s
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return { pools, loading };
+}
+
+export function useUserLending(address: string) {
+  const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!address) return;
+
+    async function fetchUserData() {
+      try {
+        const response = await fetch(
+          `https://lending-api.paxeer.app/api/user/${address}`
+        );
+        const data = await response.json();
+        setUserData(data);
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchUserData();
+    const interval = setInterval(fetchUserData, 30000);
+
+    return () => clearInterval(interval);
+  }, [address]);
+
+  return { userData, loading };
+}
+```
+
+## Understanding Credit Scores
+
+Credit scores in the lending protocol range from **300 to 850** and affect:
+
+<AccordionGroup>
+  <Accordion title="Borrowing Power">
+    Higher credit scores increase your maximum borrowing limit.
+  </Accordion>
+
+  <Accordion title="Interest Rates">
+    Better credit scores result in lower borrowing rates.
+  </Accordion>
+
+  <Accordion title="Building Credit">
+    - Deposit assets consistently
+    - Repay loans on time
+    - Maintain healthy collateralization ratios
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<Warning>
+Always ensure you:
+- Understand the risks of lending and borrowing
+- Monitor your health factor to avoid liquidation
+- Keep track of accruing interest
+- Maintain sufficient collateral
+</Warning>
+
+<Tip>
+Tips for success:
+- Start with small amounts to learn the protocol
+- Monitor APY changes regularly
+- Diversify across multiple assets
+- Set up alerts for health factor changes
+</Tip>
+
+## Resources
+
+<CardGroup cols={2}>
+  <Card
+    title="API Documentation"
+    icon="book"
+    href="https://lending-api.paxeer.app/docs"
+  >
+    Complete API reference
+  </Card>
+  <Card
+    title="Community Support"
+    icon="users"
+    href="https://paxeer.app/community"
+  >
+    Get help from the community
+  </Card>
+  <Card
+    title="Security Audit"
+    icon="shield-check"
+    href="https://paxeer.app/security"
+  >
+    View our security audits
+  </Card>
+  <Card
+    title="GitHub"
+    icon="github"
+    href="https://github.com/paxeer/lending"
+  >
+    View source code
+  </Card>
+</CardGroup>
+

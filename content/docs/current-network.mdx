@@ -1,0 +1,80 @@
+---
+title: "Current Network Facts"
+description: "Canonical mainnet identifiers, endpoints, binary, token denominations, and live precompile addresses"
+icon: "circle-info"
+---
+
+## HyperPaxeer mainnet
+
+Use this page as the source of truth for current network constants.
+
+<Info>
+HyperPaxeer currently operates mainnet only. There is no public testnet because Argus VM infrastructure is expensive to operate continuously.
+</Info>
+
+| Field | Value |
+|---|---|
+| Network name | HyperPaxeer mainnet |
+| Cosmos chain ID | `hyperpax_125-1` |
+| EVM chain ID | `125` |
+| Public binary | `hyperpaxd_2.0.3` |
+| Runtime source | `hyperpaxeer-os` with custom precompiles from `hyperpax-os-cronosRelease` |
+| JSON-RPC | `https://public-rpc.paxeer.app/rpc` |
+| CometBFT RPC | `https://public-rpc.paxeer.app:26657` |
+| REST API | `https://public-rpc.paxeer.app:1317` |
+| gRPC | `https://public-rpc.paxeer.app:9090` |
+| Block explorer | `https://paxscan.io` |
+| Native display symbol | `HPX` / `hpx` |
+| Base denomination | `ahpx` |
+| Decimals | `18` |
+| Bech32 prefix | `pax` |
+| HD path | BIP44 coin type `60` |
+
+## Wallet configuration
+
+| Field | Value |
+|---|---|
+| Network name | `HyperPaxeer` |
+| RPC URL | `https://public-rpc.paxeer.app/rpc` |
+| Chain ID | `125` |
+| Currency symbol | `HPX` |
+| Block explorer | `https://paxscan.io` |
+
+```typescript wagmi-config.ts
+import { createConfig, http } from 'wagmi'
+import { defineChain } from 'viem'
+
+export const hyperpaxeer = defineChain({
+  id: 125,
+  name: 'HyperPaxeer',
+  nativeCurrency: { decimals: 18, name: 'HyperPaxeer', symbol: 'HPX' },
+  rpcUrls: {
+    default: { http: ['https://public-rpc.paxeer.app/rpc'] },
+  },
+  blockExplorers: {
+    default: { name: 'PaxScan', url: 'https://paxscan.io' },
+  },
+})
+
+export const config = createConfig({
+  chains: [hyperpaxeer],
+  transports: { [hyperpaxeer.id]: http() },
+})
+```
+
+## Live EVM extensions
+
+| Address | Name | Stateful | Mainnet status |
+|---|---|---:|---|
+| `0x0000000000000000000000000000000000000400` | Bech32 encoding | No | Active |
+| `0x0000000000000000000000000000000000000901` | PaxSpot OROBResolver | No | Active |
+| `0x0000000000000000000000000000000000000902` | PaxSpot BatchClearing | No | Active |
+| `0x0000000000000000000000000000000000000903` | PaxSpot OracleAggregator / VOM | Mixed | Active |
+| `0x0000000000000000000000000000000000000904` | PaxSpot PoFQScorer | No | Active |
+
+## Development notes
+
+- Use local EVM development networks for pre-mainnet contract testing.
+- Use mainnet RPC only when you are ready to interact with production HyperPaxeer state.
+- Store private keys in `.env` files or wallet-managed signers. Never commit secrets.
+- Use `paxscan.io` for explorer links in public docs and applications.

@@ -1,0 +1,17 @@
+{
+  "title": "Develop",
+  "pages": [
+    "index",
+    "mainnet",
+    "---Smart Contracts---",
+    "smart-contracts",
+    "---APIs---",
+    "api",
+    "---Tools---",
+    "tools",
+    "wallet-integration",
+    "block-explorers",
+    "oracles",
+    "graphs-indexers"
+  ]
+}

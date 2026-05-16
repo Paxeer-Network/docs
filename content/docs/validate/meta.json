@@ -1,0 +1,13 @@
+{
+  "title": "Validators",
+  "pages": [
+    "index",
+    "mainnet",
+    "---Setup & Configuration---",
+    "setup",
+    "---Upgrades---",
+    "upgrades",
+    "---IBC & Relayers---",
+    "relayers"
+  ]
+}

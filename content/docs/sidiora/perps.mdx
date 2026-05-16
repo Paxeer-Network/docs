@@ -1,0 +1,93 @@
+---
+title: "HyperPax Perps"
+description: "Network-operated synthetic perpetual futures protocol with Diamond facets, oracle pricing, funding, vaults, and liquidation support"
+icon: "chart-line"
+---
+
+## Overview
+
+HyperPax Perps is the public protocol name for the network-operated Sidiora Perpetual Protocol. It provides synthetic perpetual futures on Paxeer Network using a Diamond proxy with 19 facets and shared `AppStorage`.
+
+<CardGroup cols={3}>
+  <Card title="Synthetic Perpetuals" icon="chart-candlestick">
+    Trade long or short exposure with one net position per market per user.
+  </Card>
+  <Card title="Protocol-Funded Liquidity" icon="vault">
+    Liquidity is protocol-funded. There are no external LP deposits.
+  </Card>
+  <Card title="Continuous Funding" icon="clock">
+    Funding accrues per second without a separate funding settler keeper.
+  </Card>
+</CardGroup>
+
+## Architecture
+
+| Group | Facets |
+|---|---|
+| Core | `DiamondCutFacet`, `DiamondLoupeFacet`, `OwnershipFacet`, `AccessControlFacet`, `PausableFacet` |
+| Vault and collateral | `VaultFactoryFacet`, `CentralVaultFacet`, `CollateralFacet` |
+| Trading engine | `PositionFacet`, `OrderBookFacet`, `LiquidationFacet`, `FundingRateFacet` |
+| Pricing | `OracleFacet`, `VirtualAMMFacet`, `PriceFeedFacet` |
+| Support | `MarketRegistryFacet`, `InsuranceFundFacet`, `QuoterFacet`, `EventEmitterFacet` |
+
+## Trading model
+
+| Component | Behavior |
+|---|---|
+| Position model | Net mode; one direction per market per user |
+| Price precision | 18-decimal fixed point |
+| Leverage precision | 18-decimal fixed point |
+| Market IDs | Sequential `uint256` starting from `0` |
+| Position IDs | Sequential `uint256` starting from `1` |
+| Events | Emitted from the Diamond address |
+
+## Production addresses
+
+| Contract | Address |
+|---|---|
+| Diamond proxy | `0xeA65FE02665852c615774A3041DFE6f00fb77537` |
+| UserVault implementation | `0x4195155D92451a47bF76987315DaEE499f1D7352` |
+
+## Facet addresses
+
+| Facet | Address |
+|---|---|
+| DiamondCutFacet | `0x8af7E829E2061Cb2353CCce3cf99b00e6ca4DC3B` |
+| DiamondLoupeFacet | `0x425Bcb17F3e3679fC5fE001d3707BDC3ED76c3a1` |
+| OwnershipFacet | `0xDD0C64553e792120B04727b9Eb2e97c8cd67F387` |
+| PositionFacet | `0x6bf3722414b240A2503a512A84f54Ee161fa148e` |
+| OrderBookFacet | `0x719B8f35701ff1050EB0Bb87E418Bb321Cc0e979` |
+| LiquidationFacet | `0x661320835387532aFDEc3F243B0A328BF42d7cA7` |
+| FundingRateFacet | `0x669077515193401ac30984a9d2314903ACcAc25f` |
+| OracleFacet | `0xd21135802D8eFD6c00d6332e262A7B2c75d5bF69` |
+| VirtualAMMFacet | `0x5c869AC52dd91958E7dd98e570aaeFE6FD6864B5` |
+| PriceFeedFacet | `0x08E967408a4Ee268FF11ab116BfE1D95F2484c61` |
+| AccessControlFacet | `0x71E10DB0c468BF682EA744F11C4A29b10E18FDEd` |
+| PausableFacet | `0xDc72b3dC885C5b8816456FcF9EFda7aD5625ABf8` |
+| VaultFactoryFacet | `0x54F4D455a8f47dFD2C6f252d0EdEEdDFfEe252B4` |
+| CentralVaultFacet | `0xE4410832468F0Ec655f26b0f22C1f6864628Ea21` |
+| CollateralFacet | `0x26D0BEE6F9249dD3d098288a74f7b026929dD6BD` |
+| MarketRegistryFacet | `0x819904c316dd0B8259d4486B446A057922F24116` |
+
+## Oracle integration
+
+HyperPax Perps uses oracle pricing for market valuation, funding, liquidations, and quote simulation. Protocol docs should link developers to:
+
+- [x/paxoracle](/protocol/modules/paxoracle) for validator price submissions
+- [PaxSpot precompiles](/paxspot/precompiles) for shared OROB, batch clearing, and PoFQ primitives
+
+## Developer usage
+
+Use the Diamond proxy as the contract address for user-facing facet calls.
+
+```typescript
+const hyperpaxPerpsDiamond = '0xeA65FE02665852c615774A3041DFE6f00fb77537'
+```
+
+All facet events are emitted from the Diamond address, so indexers should subscribe to the Diamond proxy rather than individual facet implementation addresses.
+
+## Related protocols
+
+- [HyperPax DEX](/sidiora/dex)
+- [Sidiora.fun](/sidiora/fun)
+- [Sidiora.ag](/sidiora/ag)

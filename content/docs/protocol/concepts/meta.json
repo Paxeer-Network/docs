@@ -1,0 +1,15 @@
+{
+  "title": "Concepts",
+  "pages": [
+    "accounts",
+    "gas-and-fees",
+    "tokens",
+    "transactions",
+    "chain-id",
+    "encoding",
+    "keyring",
+    "signing",
+    "multisig",
+    "pending-state"
+  ]
+}
