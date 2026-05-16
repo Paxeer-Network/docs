@@ -1,0 +1,428 @@
+---
+title: "Transaction Fees"
+description: "Learn how transaction fees work on HyperPaxeer"
+icon: "money-bill"
+---
+
+## Overview
+
+HyperPaxeer is designed to be EVM equivalent, which means it reuses the same Ethereum code and behaves as much like Ethereum as possible. Transaction fees on HyperPaxeer follow the standard Ethereum EIP-1559 fee mechanism with significantly lower costs due to Layer 2 optimization.
+
+## Fee Structure
+
+Transaction fees on HyperPaxeer consist of a single component:
+
+```
+totalFee = gasUsed × (baseFee + priorityFee)
+```
+
+<Note>
+Unlike some Layer 2 solutions, HyperPaxeer does not have an L1 data fee component, making fee estimation simpler and more predictable.
+</Note>
+
+## Execution Gas Fee
+
+A transaction's execution gas fee on HyperPaxeer is calculated the same way as on Ethereum. This fee is equal to the amount of gas used by the transaction multiplied by the gas price attached to the transaction.
+
+### How It Works
+
+HyperPaxeer uses the [EIP-1559](https://eips.ethereum.org/EIPS/eip-1559) mechanism to set the base fee for transactions. The total price per unit gas that a transaction pays is the sum of:
+
+1. **Base Fee** - Minimum price per unit of gas
+2. **Priority Fee** - Optional tip to incentivize faster inclusion
+
+```javascript
+gasPrice = baseFee + priorityFee
+totalFee = gasUsed × gasPrice
+```
+
+<Info>
+Because HyperPaxeer is EVM equivalent, **the gas used by a transaction on Paxeer is exactly the same as the gas used by the same transaction on Ethereum**. If a transaction costs 100,000 gas on Ethereum, it will cost 100,000 gas on HyperPaxeer. The only difference is that the gas price on Paxeer is much lower.
+</Info>
+
+### Base Fee
+
+The [base fee](https://ethereum.org/en/developers/docs/gas/#base-fee) is the minimum price per unit of gas that a transaction must pay to be included in a block.
+
+**Key Points:**
+- Transactions must specify a maximum base fee higher than the block base fee
+- The actual fee charged is the block base fee (even if you specify higher)
+- Base fee adjusts automatically based on network demand
+- Increases when blocks are full, decreases when blocks are empty
+
+The HyperPaxeer base fee behaves exactly like the Ethereum base fee, optimized for fast block times.
+
+```solidity Reading Base Fee
+// Get current base fee
+uint256 baseFee = block.basefee;
+```
+
+### Priority Fee
+
+Just like on Ethereum, HyperPaxeer transactions can specify a **priority fee** (also called a tip). This is a price per unit of gas paid on top of the base fee.
+
+**Example:**
+- Block base fee: 1 gwei
+- Transaction priority fee: 1 gwei  
+- Total price per gas: 2 gwei
+
+<Tip>
+**The HyperPaxeer sequencer will prioritize transactions with a higher priority fee** and execute them before transactions with a lower priority fee. If transaction speed is important to your application, set a higher priority fee to ensure quick inclusion.
+</Tip>
+
+The priority fee is optional and can be set to 0, but some wallets may enforce a minimum value (typically 1 gwei).
+
+### Getting Recommended Fees
+
+Use the `eth_maxPriorityFeePerGas` RPC method to estimate a priority fee for quick inclusion:
+
+<CodeGroup>
+
+```javascript JavaScript
+// Get recommended priority fee
+const priorityFee = await provider.send('eth_maxPriorityFeePerGas', []);
+console.log('Recommended priority fee:', priorityFee);
+```
+
+```python Python
+from web3 import Web3
+
+w3 = Web3(Web3.HTTPProvider('https://public-rpc.paxeer.app/rpc'))
+
+# Get recommended priority fee
+priority_fee = w3.eth.max_priority_fee
+print(f'Recommended priority fee: {priority_fee}')
+```
+
+```bash cURL
+curl -X POST https://public-rpc.paxeer.app/rpc \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "eth_maxPriorityFeePerGas",
+    "params": [],
+    "id": 1
+  }'
+```
+
+</CodeGroup>
+
+## Fee Calculation Examples
+
+### Example 1: Simple Transfer
+
+```javascript
+const gasUsed = 21000;              // Standard ETH transfer
+const baseFee = 1000000000;         // 1 gwei
+const priorityFee = 1000000000;     // 1 gwei
+
+const totalFee = gasUsed * (baseFee + priorityFee);
+// = 21000 × 2 gwei = 42,000 gwei = 0.000042 HPX
+```
+
+### Example 2: Contract Interaction
+
+```javascript
+const gasUsed = 150000;             // Contract call
+const baseFee = 1000000000;         // 1 gwei
+const priorityFee = 2000000000;     // 2 gwei (higher priority)
+
+const totalFee = gasUsed * (baseFee + priorityFee);
+// = 150000 × 3 gwei = 450,000 gwei = 0.00045 HPX
+```
+
+## Estimating Transaction Costs
+
+<Tabs>
+  <Tab title="ethers.js">
+    ```javascript
+    import { ethers } from 'ethers';
+
+    const provider = new ethers.JsonRpcProvider('https://public-rpc.paxeer.app/rpc');
+
+    async function estimateTransactionCost(tx) {
+      // Estimate gas
+      const gasEstimate = await provider.estimateGas(tx);
+      
+      // Get fee data
+      const feeData = await provider.getFeeData();
+      
+      // Calculate total cost
+      const maxFee = feeData.maxFeePerGas;
+      const estimatedCost = gasEstimate * maxFee;
+      
+      console.log('Estimated gas:', gasEstimate.toString());
+      console.log('Max fee per gas:', ethers.formatUnits(maxFee, 'gwei'), 'gwei');
+      console.log('Estimated cost:', ethers.formatEther(estimatedCost), 'HPX');
+      
+      return estimatedCost;
+    }
+
+    // Usage
+    const tx = {
+      to: '0x...',
+      value: ethers.parseEther('1.0'),
+    };
+
+    await estimateTransactionCost(tx);
+    ```
+  </Tab>
+
+  <Tab title="viem">
+    ```typescript
+    import { createPublicClient, http, parseEther } from 'viem';
+    import { paxeer } from './chains';
+
+    const client = createPublicClient({
+      chain: paxeer,
+      transport: http(),
+    });
+
+    async function estimateTransactionCost(tx) {
+      // Estimate gas
+      const gasEstimate = await client.estimateGas(tx);
+      
+      // Get fee data
+      const gasPrice = await client.getGasPrice();
+      
+      // Calculate total cost
+      const estimatedCost = gasEstimate * gasPrice;
+      
+      console.log('Estimated gas:', gasEstimate);
+      console.log('Gas price:', gasPrice);
+      console.log('Estimated cost:', estimatedCost);
+      
+      return estimatedCost;
+    }
+
+    // Usage
+    await estimateTransactionCost({
+      to: '0x...',
+      value: parseEther('1'),
+    });
+    ```
+  </Tab>
+
+  <Tab title="wagmi">
+    ```typescript
+    import { useEstimateGas, useGasPrice } from 'wagmi';
+    import { parseEther, formatEther } from 'viem';
+
+    function TransactionCostEstimator() {
+      const { data: gasEstimate } = useEstimateGas({
+        to: '0x...',
+        value: parseEther('1'),
+      });
+
+      const { data: gasPrice } = useGasPrice();
+
+      const estimatedCost = gasEstimate && gasPrice 
+        ? gasEstimate * gasPrice 
+        : 0n;
+
+      return (
+        <div>
+          <p>Estimated Gas: {gasEstimate?.toString()}</p>
+          <p>Gas Price: {gasPrice?.toString()}</p>
+          <p>Estimated Cost: {formatEther(estimatedCost)} HPX</p>
+        </div>
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Gas Price Monitoring
+
+Monitor current gas prices on HyperPaxeer:
+
+```javascript
+import { ethers } from 'ethers';
+
+const provider = new ethers.JsonRpcProvider('https://public-rpc.paxeer.app/rpc');
+
+async function monitorGasPrices() {
+  const feeData = await provider.getFeeData();
+  
+  console.log({
+    baseFee: ethers.formatUnits(feeData.maxFeePerGas, 'gwei'),
+    priorityFee: ethers.formatUnits(feeData.maxPriorityFeePerGas, 'gwei'),
+  });
+}
+
+// Check gas prices every 10 seconds
+setInterval(monitorGasPrices, 10000);
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Set Appropriate Gas Limits" icon="gauge-high">
+    - Always estimate gas before sending transactions
+    - Add a 10-20% buffer to gas estimates for safety
+    - Don't set gas limits too high (wastes money) or too low (transaction fails)
+    
+    ```javascript
+    const gasEstimate = await contract.estimateGas.transfer(to, amount);
+    const gasLimit = gasEstimate * 120n / 100n; // 20% buffer
+    ```
+  </Accordion>
+
+  <Accordion title="Monitor Base Fee" icon="chart-line">
+    - Check current base fee before submitting time-sensitive transactions
+    - Set max fee per gas higher than current base fee to avoid stuck transactions
+    - Use `eth_feeHistory` to analyze fee trends
+    
+    ```javascript
+    const feeHistory = await provider.send('eth_feeHistory', [
+      '0x10', // 16 blocks
+      'latest',
+      []
+    ]);
+    ```
+  </Accordion>
+
+  <Accordion title="Use Priority Fees Wisely" icon="gauge">
+    - Set higher priority fees for time-sensitive transactions
+    - Use 0 or low priority fees for non-urgent transactions
+    - Check recommended priority fee with `eth_maxPriorityFeePerGas`
+  </Accordion>
+
+  <Accordion title="Handle Failed Transactions" icon="triangle-exclamation">
+    - Always check transaction status before assuming success
+    - Implement proper error handling
+    - Consider transaction timeouts
+    
+    ```javascript
+    try {
+      const tx = await signer.sendTransaction(txRequest);
+      const receipt = await tx.wait();
+      
+      if (receipt.status === 0) {
+        throw new Error('Transaction failed');
+      }
+    } catch (error) {
+      console.error('Transaction error:', error);
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Fee Vault
+
+The Sequencer Fee Vault collects and holds transaction fees paid to the sequencer during block production on HyperPaxeer.
+
+**Vault Address:** `0x4200000000000000000000000000000000000011`
+
+### How It Works
+
+1. **Fee Collection**: During transaction processing, the sequencer collects fees from users
+2. **Storage**: Collected fees are deposited into the Sequencer Fee Vault contract
+3. **Distribution**: Fees are distributed to cover operational costs and network maintenance
+
+## Comparing Costs
+
+### HyperPaxeer vs Ethereum
+
+| Operation | Ethereum | HyperPaxeer | Savings |
+|-----------|----------|----------------|---------|
+| ETH Transfer (21,000 gas) | ~$5-20 | ~$0.01-0.05 | 99%+ |
+| Token Swap (150,000 gas) | ~$30-100 | ~$0.05-0.20 | 99%+ |
+| NFT Mint (200,000 gas) | ~$40-150 | ~$0.10-0.30 | 99%+ |
+
+<Note>
+Actual costs vary based on current gas prices. HyperPaxeer typically offers 99%+ cost savings compared to Ethereum mainnet.
+</Note>
+
+## Advanced Topics
+
+### EIP-1559 Parameters
+
+HyperPaxeer uses EIP-1559 with these parameters:
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| Block Gas Limit | 30,000,000 | Maximum gas per block |
+| Block Time | 277 ms average | Official reported average block production time |
+| Base Fee Max Change | 12.5% | Maximum base fee change per block |
+| Elasticity Multiplier | 2 | Block gas target multiplier |
+
+### Gas Price Oracle
+
+Query the Gas Price Oracle for current fee data:
+
+```solidity
+// Gas Price Oracle address
+address constant GAS_PRICE_ORACLE = 0x420000000000000000000000000000000000000F;
+
+interface IGasPriceOracle {
+    function gasPrice() external view returns (uint256);
+    function baseFee() external view returns (uint256);
+}
+
+// Usage
+IGasPriceOracle oracle = IGasPriceOracle(GAS_PRICE_ORACLE);
+uint256 currentBaseFee = oracle.baseFee();
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Transaction Stuck in Mempool" icon="clock">
+    If your transaction is stuck, it's likely because the max fee per gas is too low:
+    
+    **Solution:**
+    - Set a higher max fee per gas (e.g., 10 gwei)
+    - Or cancel the transaction by sending a new one with the same nonce and higher fee
+  </Accordion>
+
+  <Accordion title="Out of Gas" icon="gas-pump">
+    Transaction ran out of gas during execution:
+    
+    **Solution:**
+    - Increase gas limit
+    - Check for infinite loops or excessive computation
+    - Optimize contract code
+  </Accordion>
+
+  <Accordion title="Insufficient Funds" icon="wallet">
+    Account doesn't have enough HPX to cover gas costs:
+    
+    **Solution:**
+    - Ensure account has sufficient HPX balance
+    - Remember: required balance = (gas limit × max fee per gas) + value
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Estimate Costs"
+    icon="calculator"
+    href="/app-developers/guides/transactions/estimates"
+  >
+    Learn how to properly estimate transaction costs
+  </Card>
+  <Card
+    title="Gas Parameters"
+    icon="sliders"
+    href="/app-developers/guides/transactions/parameters"
+  >
+    Set optimal gas parameters for your transactions
+  </Card>
+  <Card
+    title="Transaction Status"
+    icon="list-check"
+    href="/app-developers/guides/transactions/statuses"
+  >
+    Track and verify transaction status
+  </Card>
+  <Card
+    title="Troubleshooting"
+    icon="screwdriver-wrench"
+    href="/app-developers/guides/transactions/troubleshooting"
+  >
+    Fix common transaction issues
+  </Card>
+</CardGroup>

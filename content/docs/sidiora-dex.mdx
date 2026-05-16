@@ -1,0 +1,213 @@
+---
+title: "HyperPax DEX"
+description: "Adaptive Sigmoid Automated Market Maker (v5-ASAMM) with progressive fees, on-chain order book, and Diamond Standard upgradeability"
+icon: "arrow-right-arrow-left"
+---
+
+## Overview
+
+HyperPax DEX is powered by the **v5-ASAMM protocol** — an Adaptive Sigmoid Automated Market Maker built from scratch for HyperPaxeer. The sigmoid bonding curve delivers near-zero slippage for small trades while progressively penalising large (whale) trades through quadratic fee scaling. Every line of Solidity is custom — zero external dependencies.
+
+<CardGroup cols={3}>
+  <Card title="Sigmoid Curve" icon="wave-square">
+    tanh-based price impact — flat for small trades, steep for large
+  </Card>
+  <Card title="Progressive Fees" icon="chart-line">
+    Quadratic scaling: baseFee + impactFee * (x/L)^2
+  </Card>
+  <Card title="Diamond Standard" icon="gem">
+    EIP-2535 modular upgradeability across 12 independent facets
+  </Card>
+</CardGroup>
+
+---
+
+## Bonding Curve
+
+The price impact for a trade of size `x` against a pool with liquidity `L`:
+
+```
+P(x) = P_mid * (1 + k * tanh(alpha * x / L))
+```
+
+| Parameter | Meaning | Typical Range |
+|-----------|---------|---------------|
+| `P_mid` | Current mid-price (from reserves or oracle) | — |
+| `k` | Max price deviation factor | 0.5 – 2.0 |
+| `alpha` | Steepness — how fast slippage grows | 1.0 – 10.0 |
+| `x` | Signed trade size (+ buy, - sell) | — |
+| `L` | Total pool liquidity in the traded token | — |
+
+**Behaviour**: Small trades see linear, minimal slippage. Medium trades transition smoothly. Large trades saturate the `tanh` ceiling **and** face quadratic fees on top.
+
+On-chain, `tanh` is approximated with a rational Pade approximant in Q128.128 fixed-point arithmetic, with less than `0.0001%` error for `|x| < 4`.
+
+---
+
+## Pool Types
+
+<Tabs>
+  <Tab title="Standard Pool">
+    `P_mid` derived from reserve ratio (`reserve1 / reserve0`). Sigmoid curve applied around the derived mid-price. Suitable for any token pair.
+  </Tab>
+  <Tab title="Oracle-Pegged Pool">
+    `P_mid` anchored to an external oracle feed. Designed for wrapped / bridged assets (WBTC, wETH, stETH). Reserves can be imbalanced — price stays at oracle level. LPs earn fees without impermanent loss from peg drift.
+
+    Circuit breaker: if `updatedAt` exceeds `maxStaleness`, the pool pauses automatically.
+  </Tab>
+</Tabs>
+
+---
+
+## Progressive Fee Structure
+
+```
+fee(x) = baseFee + impactFee * (x / L)^2
+```
+
+| Trade Size (% of pool) | Effective Fee |
+|------------------------|---------------|
+| 0.01% | ~0.01% |
+| 0.1% | ~0.02% |
+| 1% | ~0.11% |
+| 5% | ~2.5% |
+| 10% | ~10.0% |
+
+### Fee Distribution
+
+| Recipient | Share | Purpose |
+|-----------|-------|---------|
+| LP providers | 70% | Weighted by loyalty multiplier |
+| Protocol treasury | 20% | Governance-controlled |
+| Trader reward pool | 10% | Rebates for consistent small traders |
+
+---
+
+## Incentive System
+
+### LP Loyalty Multiplier
+
+```
+multiplier = time_factor * sqrt(volume_factor)
+```
+
+| Duration | Time Factor |
+|----------|-------------|
+| 0–30 days | 1.00x |
+| 30–90 days | 1.25x |
+| 90–180 days | 1.50x |
+| 180+ days | 2.00x |
+
+Volume factor: `min(lp_liquidity / average_lp_liquidity, 3.0)` — capped to prevent plutocratic dominance.
+
+### Trader Rebates
+
+Epoch-based fee rebates reward consistent smaller-volume traders. Calculated per epoch, distributed from the 10% trader-reward pool.
+
+---
+
+## Architecture
+
+```
+Diamond Proxy (EIP-2535)
+  Core Facets: Swap, Liquidity, Pool, Fee, Oracle, OraclePeg, Order, Reward, FlashLoan
+  Infrastructure: DiamondCut, DiamondLoupe, Ownership
+  Libraries: LibSwap (sigmoid math), LibFee (quadratic), LibOrder (tick buckets)
+
+Periphery (Stateless)
+  Router         — Multi-hop swaps with slippage protection
+  Quoter         — Off-chain quote simulation
+  PositionManager — ERC-721 NFT LP positions
+  OrderManager   — Limit/stop order placement
+  Multicall      — Batch operations
+  SelfPermit     — Gasless approvals
+```
+
+### On-Chain Order Book
+
+Tick-aligned limit and stop orders with keeper execution. Orders are stored in tick buckets and filled when the sigmoid curve crosses the trigger price.
+
+---
+
+## Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Sigmoid Bonding Curve** | tanh-based price impact |
+| **Progressive Fees** | Quadratic fee scaling |
+| **LP Loyalty Rewards** | Time + volume multiplier up to 2x fee share |
+| **Trader Rebates** | Epoch-based fee rebates for consistent volume |
+| **Oracle-Pegged Pools** | Wrapped assets trade at oracle price with TWAP anchor |
+| **On-Chain Order Book** | Tick-aligned limit and stop orders |
+| **Diamond Standard** | EIP-2535 modular upgradeability |
+| **Zero External Deps** | All Solidity written from scratch |
+
+---
+
+## Quick Start
+
+```bash
+git clone https://github.com/paxeer-network/v5-Automated-Market-Maker
+cd v5-Automated-Market-Maker
+npm install
+npm run compile
+npm test
+npm run test:forge
+```
+
+### Development Commands
+
+| Command | Purpose |
+|---------|---------|
+| `npm run lint:sol` | Solidity linting |
+| `npm run slither` | Static analysis |
+| `npm run test:gas` | Gas report |
+| `npm run test:coverage` | Coverage report |
+| `npm run deploy:local` | Local deployment |
+
+---
+
+## Protocol Suite
+
+HyperPax DEX is the core AMM. The broader network-operated protocol suite includes:
+
+- **HyperPax Perps** — Perpetual futures trading
+- **Sidiora.fun** — Launchpad AMM
+- **Sidiora.ag** — Meta-aggregator routing layer
+
+Access the live exchange at [sidiora.hyperpaxeer.com](https://sidiora.hyperpaxeer.com).
+
+---
+
+## Resources
+
+<CardGroup cols={2}>
+  <Card
+    title="Protocol Documentation"
+    icon="book"
+    href="https://docs.hyperpaxeer.com"
+  >
+    Full architecture and design docs
+  </Card>
+  <Card
+    title="Block Explorer"
+    icon="magnifying-glass"
+    href="https://paxscan.io"
+  >
+    View deployed contracts on PaxScan
+  </Card>
+  <Card
+    title="Sidiora Exchange"
+    icon="arrow-right-arrow-left"
+    href="https://sidiora.hyperpaxeer.com"
+  >
+    Trade on the live DEX
+  </Card>
+  <Card
+    title="Source Code"
+    icon="github"
+    href="https://github.com/paxeer-network/v5-Automated-Market-Maker"
+  >
+    GPL-3.0 licensed
+  </Card>
+</CardGroup>

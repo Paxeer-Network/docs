@@ -1,0 +1,263 @@
+---
+title: "PaxSpot Precompiles"
+description: "Solidity and frontend reference for the live PaxSpot precompiles at 0x901 through 0x904"
+icon: "bolt"
+---
+
+## Overview
+
+PaxSpot uses four custom EVM precompiles for exchange-critical computation. They run as native HyperPaxeer consensus code and are live on mainnet.
+
+| Address | Name | Purpose |
+|---|---|---|
+| `0x0000000000000000000000000000000000000901` | OROBResolver | Convert oracle-relative basis-point offsets to absolute prices and back |
+| `0x0000000000000000000000000000000000000902` | BatchClearing | Compute uniform clearing prices for batch auctions |
+| `0x0000000000000000000000000000000000000903` | OracleAggregator / VOM | Read validator oracle prices and submit validator attestations |
+| `0x0000000000000000000000000000000000000904` | PoFQScorer | Score fill quality against oracle prices |
+
+<Info>
+All price values in these examples use 18-decimal fixed point integers.
+</Info>
+
+## `0x901` OROBResolver
+
+OROB orders store signed basis-point offsets from the oracle price instead of stale absolute prices.
+
+```solidity
+interface IOROBResolver {
+    function resolveOffset(int256 oraclePrice, int16 offsetBps)
+        external
+        view
+        returns (int256 absolutePrice);
+
+    function resolveOffsetBatch(int256 oraclePrice, int16[] calldata offsetsBps)
+        external
+        view
+        returns (int256[] memory absolutePrices);
+
+    function toOffset(int256 oraclePrice, int256 absolutePrice)
+        external
+        view
+        returns (int16 offsetBps);
+}
+```
+
+Formula:
+
+```text
+absolutePrice = oraclePrice * (10000 + offsetBps) / 10000
+offsetBps = ((absolutePrice - oraclePrice) * 10000) / oraclePrice
+```
+
+### Solidity example
+
+```solidity
+IOROBResolver constant OROB =
+    IOROBResolver(0x0000000000000000000000000000000000000901);
+
+function limitPrice(int256 oraclePrice) external view returns (int256) {
+    return OROB.resolveOffset(oraclePrice, -5);
+}
+```
+
+### viem example
+
+```typescript
+import { createPublicClient, http, parseUnits } from 'viem'
+import { hyperpaxeer } from './chains'
+
+const client = createPublicClient({
+  chain: hyperpaxeer,
+  transport: http('https://public-rpc.paxeer.app/rpc'),
+})
+
+const price = await client.readContract({
+  address: '0x0000000000000000000000000000000000000901',
+  abi: [{
+    type: 'function',
+    name: 'resolveOffset',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'oraclePrice', type: 'int256' },
+      { name: 'offsetBps', type: 'int16' },
+    ],
+    outputs: [{ name: 'absolutePrice', type: 'int256' }],
+  }],
+  functionName: 'resolveOffset',
+  args: [parseUnits('3842.50', 18), -5],
+})
+```
+
+## `0x902` BatchClearing
+
+BatchClearing computes the supply-demand crossing for a sealed-bid auction and returns a uniform clearing price.
+
+```solidity
+interface IBatchClearing {
+    struct ClearingResult {
+        int16 clearingOffsetBps;
+        int256 clearingPrice;
+        uint256 matchedVolume;
+    }
+
+    function computeClearing(
+        int256 oraclePrice,
+        int16[] calldata buyOffsets,
+        uint128[] calldata buySizes,
+        int16[] calldata sellOffsets,
+        uint128[] calldata sellSizes
+    ) external view returns (ClearingResult memory result);
+}
+```
+
+Input expectations:
+
+- `buyOffsets` are sorted from most aggressive to least aggressive.
+- `sellOffsets` are sorted from cheapest to most expensive.
+- `buySizes.length` must equal `buyOffsets.length`.
+- `sellSizes.length` must equal `sellOffsets.length`.
+- Empty buy or sell sides return zero matched volume.
+
+```solidity
+IBatchClearing constant CLEARING =
+    IBatchClearing(0x0000000000000000000000000000000000000902);
+
+function previewBatch(
+    int256 oraclePrice,
+    int16[] calldata buyOffsets,
+    uint128[] calldata buySizes,
+    int16[] calldata sellOffsets,
+    uint128[] calldata sellSizes
+) external view returns (IBatchClearing.ClearingResult memory) {
+    return CLEARING.computeClearing(
+        oraclePrice,
+        buyOffsets,
+        buySizes,
+        sellOffsets,
+        sellSizes
+    );
+}
+```
+
+## `0x903` OracleAggregator / VOM
+
+OracleAggregator reads validator-consensus prices from `x/paxoracle` and lets active validators submit price attestations.
+
+```solidity
+interface IOracleAggregator {
+    function getValidatorPrice(bytes32 marketId)
+        external
+        view
+        returns (int256 price, uint256 quorum, uint256 timestamp);
+
+    function submitPrice(bytes32 marketId, int256 price, uint256 confidence)
+        external
+        returns (bool success);
+}
+```
+
+### Read the validator price
+
+```solidity
+IOracleAggregator constant VOM =
+    IOracleAggregator(0x0000000000000000000000000000000000000903);
+
+function readBtcPrice() external view returns (int256 price, uint256 quorum) {
+    bytes32 marketId = keccak256("BTC/USD");
+    (price, quorum,) = VOM.getValidatorPrice(marketId);
+}
+```
+
+### Submit a validator price
+
+<Warning>
+`submitPrice()` is for active validators. Transactions from non-validator addresses are rejected by the oracle module.
+</Warning>
+
+```solidity
+IOracleAggregator constant VOM =
+    IOracleAggregator(0x0000000000000000000000000000000000000903);
+
+function submitBtcPrice(int256 price) external returns (bool) {
+    bytes32 marketId = keccak256("BTC/USD");
+    uint256 confidence = 1e18;
+    return VOM.submitPrice(marketId, price, confidence);
+}
+```
+
+```typescript
+import { createWalletClient, http, keccak256, parseUnits, stringToBytes } from 'viem'
+import { privateKeyToAccount } from 'viem/accounts'
+import { hyperpaxeer } from './chains'
+
+const account = privateKeyToAccount(process.env.VALIDATOR_EVM_PRIVATE_KEY as `0x${string}`)
+
+const wallet = createWalletClient({
+  account,
+  chain: hyperpaxeer,
+  transport: http('https://public-rpc.paxeer.app/rpc'),
+})
+
+const hash = await wallet.writeContract({
+  address: '0x0000000000000000000000000000000000000903',
+  abi: [{
+    type: 'function',
+    name: 'submitPrice',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'marketId', type: 'bytes32' },
+      { name: 'price', type: 'int256' },
+      { name: 'confidence', type: 'uint256' },
+    ],
+    outputs: [{ name: 'success', type: 'bool' }],
+  }],
+  functionName: 'submitPrice',
+  args: [
+    keccak256(stringToBytes('BTC/USD')),
+    parseUnits('97250', 18),
+    parseUnits('1', 18),
+  ],
+})
+```
+
+## `0x904` PoFQScorer
+
+Proof-of-Fill-Quality scores execution quality relative to the oracle price. Scores range from `0` to `1e18`, where `1e18` means the fill matched the oracle price.
+
+```solidity
+interface IPoFQScorer {
+    function scoreFill(int256 fillPrice, int256 oraclePrice)
+        external
+        view
+        returns (uint256 score);
+
+    function scoreBatch(
+        int256[] calldata fillPrices,
+        int256[] calldata oraclePrices,
+        uint128[] calldata sizes
+    ) external view returns (uint256 avgScore, uint256 totalVolume);
+
+    function updateRollingScore(
+        uint256 currentScore,
+        uint256 currentWeight,
+        uint256 newScore,
+        uint256 newWeight,
+        uint16 decayBps
+    ) external view returns (uint256 updatedScore, uint256 updatedWeight);
+}
+```
+
+```solidity
+IPoFQScorer constant POFQ =
+    IPoFQScorer(0x0000000000000000000000000000000000000904);
+
+function score(int256 fillPrice, int256 oraclePrice) external view returns (uint256) {
+    return POFQ.scoreFill(fillPrice, oraclePrice);
+}
+```
+
+## Related docs
+
+- [PaxSpot overview](/paxspot)
+- [x/paxoracle module](/protocol/modules/paxoracle)
+- [EVM extensions](/develop/smart-contracts/list-evm-extensions)

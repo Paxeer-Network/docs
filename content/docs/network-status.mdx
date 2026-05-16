@@ -1,0 +1,92 @@
+---
+title: "Network Status"
+description: "Live node health, latency benchmarks, and validator set for HyperPaxeer"
+icon: "signal"
+---
+
+## Validator Set
+
+HyperPaxeer runs on 10 active validators with balanced voting power. Consensus requires a two-thirds supermajority of voting power.
+
+| Metric | Value |
+|---|---:|
+| Active validators | `10` |
+| Total voting power | `167,294,521` |
+| Voting-power range | `5.9%` to `13.1%` |
+| Nakamoto coefficient | `4` |
+
+<Note>
+Data from the official April 2026 HyperPaxeer performance report.
+</Note>
+
+---
+
+## Block Timing
+
+| Metric | Value |
+|--------|-------|
+| **Average** | 277 ms |
+| **Min** | 197 ms |
+| **Max** | 358 ms |
+| **p95** | 341 ms |
+| **Std Dev** | 40.3 ms |
+| **Finality** | Instant deterministic |
+
+---
+
+## RPC / Full Node Fleet
+
+48 RPC nodes and 47 EVM RPC nodes are online across 14 active regions.
+
+| Region group | Observed latency |
+|---|---:|
+| Best RPC | 4.2 ms |
+| Europe | 4-65 ms |
+| United States | 215-390 ms |
+
+---
+
+## Chain Statistics
+
+| Metric | Value |
+|--------|-------|
+| **Chain ID** | `hyperpax_125-1` (EVM: `125`) |
+| **Block Height** | 5.25M+ blocks in the report sample |
+| **Genesis** | Block 1 (all nodes retain full history) |
+| **Consensus** | CometBFT v0.38.15 (PoS) |
+| **Fork** | Alexandria (Cosmos SDK + CometBFT) |
+| **Binary** | `hyperpaxd_2.0.3` |
+| **Token** | HPX (`ahpx` base / `hpx` display, 18 decimals) |
+
+---
+
+## Endpoints
+
+| Type | URL |
+|------|-----|
+| **JSON-RPC (EVM)** | `https://public-rpc.paxeer.app/rpc` |
+| **CometBFT RPC** | `https://public-rpc.paxeer.app:26657` |
+| **REST API** | `https://public-rpc.paxeer.app:1317` |
+| **gRPC** | `https://public-rpc.paxeer.app:9090` |
+| **Block Explorer** | [paxscan.io](https://paxscan.io) |
+
+---
+
+## Resources
+
+<CardGroup cols={2}>
+  <Card
+    title="Run a Node"
+    icon="server"
+    href="/validate/setup/run-a-validator"
+  >
+    Deploy your own RPC or Validator node with the hpx CLI
+  </Card>
+  <Card
+    title="Block Explorer"
+    icon="magnifying-glass"
+    href="https://paxscan.io"
+  >
+    View live chain data on PaxScan
+  </Card>
+</CardGroup>

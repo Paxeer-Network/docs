@@ -1,0 +1,9 @@
+{
+  "title": "Smart Contracts",
+  "pages": [
+    "index",
+    "custom-improvement-proposals",
+    "list-evm-extensions",
+    "evm-extensions"
+  ]
+}

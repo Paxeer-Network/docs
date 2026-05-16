@@ -1,0 +1,448 @@
+---
+title: "Network Configuration"
+description: "Configure HyperPaxeer in your applications using various libraries and frameworks"
+icon: "gear"
+---
+
+## Overview
+
+Configure HyperPaxeer in your applications using wagmi, viem, ethers.js, or web3.js.
+
+## Network Details
+
+| Parameter | Value |
+|-----------|-------|
+| Chain ID | `125` |
+| Network Name | HyperPaxeer |
+| Native Currency | HPX (HyperPaxeer) |
+| Decimals | 18 |
+| RPC Endpoint | `https://public-rpc.paxeer.app/rpc` |
+| Block Explorer | `https://paxscan.io` |
+| Explorer API | `https://paxscan.io/api` |
+
+## Configuration by Library
+
+<Tabs>
+  <Tab title="wagmi">
+    ### wagmi Configuration
+
+    Setup HyperPaxeer with wagmi for React applications.
+
+    ```typescript wagmi-config.ts
+    import { createConfig, http } from 'wagmi'
+    import { defineChain } from 'viem'
+
+    export const paxeer = defineChain({
+      id: 125,
+      name: 'HyperPaxeer',
+      network: 'paxeer',
+      nativeCurrency: {
+        decimals: 18,
+        name: 'HyperPaxeer',
+        symbol: 'HPX',
+      },
+      rpcUrls: {
+        default: {
+          http: ['https://public-rpc.paxeer.app/rpc'],
+        },
+        public: {
+          http: ['https://public-rpc.paxeer.app/rpc'],
+        },
+      },
+      blockExplorers: {
+        default: {
+          name: 'PaxScan',
+          url: 'https://paxscan.io',
+          apiUrl: 'https://paxscan.io/api',
+        },
+      },
+    })
+
+    export const config = createConfig({
+      chains: [paxeer],
+      transports: {
+        [paxeer.id]: http(),
+      },
+    })
+    ```
+
+    ### Usage in React
+
+    ```tsx App.tsx
+    import { WagmiProvider } from 'wagmi'
+    import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+    import { config } from './wagmi-config'
+
+    const queryClient = new QueryClient()
+
+    function App() {
+      return (
+        <WagmiProvider config={config}>
+          <QueryClientProvider client={queryClient}>
+            <YourApp />
+          </QueryClientProvider>
+        </WagmiProvider>
+      )
+    }
+    ```
+
+    <Tip>
+    Install required packages: `npm install wagmi viem @tanstack/react-query`
+    </Tip>
+  </Tab>
+
+  <Tab title="viem">
+    ### viem Configuration
+
+    Setup HyperPaxeer with viem for TypeScript applications.
+
+    ```typescript viem-config.ts
+    import { createPublicClient, http, defineChain } from 'viem'
+
+    export const paxeer = defineChain({
+      id: 125,
+      name: 'HyperPaxeer',
+      network: 'paxeer',
+      nativeCurrency: {
+        decimals: 18,
+        name: 'HyperPaxeer',
+        symbol: 'HPX',
+      },
+      rpcUrls: {
+        default: {
+          http: ['https://public-rpc.paxeer.app/rpc'],
+        },
+      },
+      blockExplorers: {
+        default: {
+          name: 'PaxScan',
+          url: 'https://paxscan.io',
+        },
+      },
+    })
+
+    export const publicClient = createPublicClient({
+      chain: paxeer,
+      transport: http(),
+    })
+    ```
+
+    ### Usage
+
+    ```typescript
+    import { publicClient } from './viem-config'
+
+    // Get block number
+    const blockNumber = await publicClient.getBlockNumber()
+
+    // Get balance
+    const balance = await publicClient.getBalance({
+      address: '0x...',
+    })
+
+    // Read contract
+    const data = await publicClient.readContract({
+      address: '0x...',
+      abi: contractAbi,
+      functionName: 'balanceOf',
+      args: ['0x...'],
+    })
+    ```
+
+    <Tip>
+    Install viem: `npm install viem`
+    </Tip>
+  </Tab>
+
+  <Tab title="ethers.js">
+    ### ethers.js Configuration
+
+    Setup HyperPaxeer with ethers.js v6.
+
+    ```javascript ethers-config.js
+    import { ethers } from 'ethers'
+
+    const paxeerNetwork = {
+      chainId: 125,
+      name: 'HyperPaxeer',
+    }
+
+    // Connect to HyperPaxeer
+    const provider = new ethers.JsonRpcProvider(
+      'https://public-rpc.paxeer.app/rpc',
+      paxeerNetwork
+    )
+
+    export { provider }
+    ```
+
+    ### Usage
+
+    ```javascript
+    import { provider } from './ethers-config'
+
+    // Get block number
+    const blockNumber = await provider.getBlockNumber()
+    console.log('Current block:', blockNumber)
+
+    // Get balance
+    const balance = await provider.getBalance('0x...')
+    console.log('Balance:', ethers.formatEther(balance), 'HPX')
+
+    // Get signer from MetaMask
+    const signer = await provider.getSigner()
+
+    // Send transaction
+    const tx = await signer.sendTransaction({
+      to: '0x...',
+      value: ethers.parseEther('1.0'),
+    })
+    await tx.wait()
+
+    // Interact with contract
+    const contract = new ethers.Contract(
+      contractAddress,
+      contractABI,
+      signer
+    )
+    await contract.transfer('0x...', ethers.parseEther('10'))
+    ```
+
+    <Tip>
+    Install ethers: `npm install ethers@6`
+    </Tip>
+  </Tab>
+
+  <Tab title="web3.js">
+    ### web3.js Configuration
+
+    Setup HyperPaxeer with web3.js v4.
+
+    ```javascript web3-config.js
+    import Web3 from 'web3'
+
+    // Connect to HyperPaxeer
+    const web3 = new Web3('https://public-rpc.paxeer.app/rpc')
+
+    export { web3 }
+    ```
+
+    ### Usage
+
+    ```javascript
+    import { web3 } from './web3-config'
+
+    // Get network ID
+    const networkId = await web3.eth.net.getId()
+    console.log('Network ID:', networkId) // 125
+
+    // Get current block number
+    const blockNumber = await web3.eth.getBlockNumber()
+    console.log('Current block:', blockNumber)
+
+    // Get balance
+    const balance = await web3.eth.getBalance(address)
+    console.log('Balance:', web3.utils.fromWei(balance, 'ether'), 'HPX')
+
+    // Send transaction
+    const receipt = await web3.eth.sendTransaction({
+      from: fromAddress,
+      to: toAddress,
+      value: web3.utils.toWei('1', 'ether'),
+    })
+
+    // Interact with contract
+    const contract = new web3.eth.Contract(contractABI, contractAddress)
+    await contract.methods.transfer(toAddress, amount).send({
+      from: fromAddress,
+    })
+    ```
+
+    <Tip>
+    Install web3.js: `npm install web3@4`
+    </Tip>
+  </Tab>
+</Tabs>
+
+## MetaMask Configuration
+
+Add HyperPaxeer to MetaMask programmatically:
+
+```javascript
+async function addPaxeerNetwork() {
+  try {
+    await window.ethereum.request({
+      method: 'wallet_addEthereumChain',
+      params: [
+        {
+          chainId: '0xe5', // 125 in hex
+          chainName: 'HyperPaxeer',
+          nativeCurrency: {
+            name: 'HyperPaxeer',
+            symbol: 'HPX',
+            decimals: 18,
+          },
+          rpcUrls: ['https://public-rpc.paxeer.app/rpc'],
+          blockExplorerUrls: ['https://paxscan.io'],
+        },
+      ],
+    });
+    console.log('HyperPaxeer added to MetaMask');
+  } catch (error) {
+    console.error('Error adding network:', error);
+  }
+}
+```
+
+## Environment Variables
+
+Store your configuration in environment variables:
+
+```bash .env
+# HyperPaxeer Configuration
+PAXEER_RPC_URL=https://public-rpc.paxeer.app/rpc
+PAXEER_CHAIN_ID=125
+PAXEER_EXPLORER=https://paxscan.io
+
+# Your private key (NEVER commit this!)
+PRIVATE_KEY=your_private_key_here
+```
+
+<Warning>
+Never commit private keys or sensitive credentials to version control. Use environment variables and add `.env` to your `.gitignore`.
+</Warning>
+
+## Hardhat Configuration
+
+```javascript hardhat.config.js
+require("@nomicfoundation/hardhat-toolbox");
+require('dotenv').config();
+
+module.exports = {
+  solidity: "0.8.20",
+  networks: {
+    paxeer: {
+      url: process.env.PAXEER_RPC_URL,
+      chainId: parseInt(process.env.PAXEER_CHAIN_ID),
+      accounts: [process.env.PRIVATE_KEY],
+    },
+  },
+  etherscan: {
+    apiKey: {
+      paxeer: process.env.ETHERSCAN_API_KEY || "YOUR_API_KEY",
+    },
+    customChains: [
+      {
+        network: "paxeer",
+        chainId: 125,
+        urls: {
+          apiURL: "https://paxscan.io/api",
+          browserURL: "https://paxscan.io",
+        },
+      },
+    ],
+  },
+};
+```
+
+## Foundry Configuration
+
+```toml foundry.toml
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+solc_version = "0.8.20"
+
+[rpc_endpoints]
+paxeer = "https://public-rpc.paxeer.app/rpc"
+
+[etherscan]
+paxeer = { key = "${ETHERSCAN_API_KEY}", url = "https://paxscan.io/api" }
+```
+
+## Testing Connection
+
+Verify your configuration is working:
+
+<CodeGroup>
+
+```typescript TypeScript
+import { publicClient } from './viem-config'
+
+async function testConnection() {
+  try {
+    const blockNumber = await publicClient.getBlockNumber()
+    console.log('✅ Connected! Current block:', blockNumber)
+    console.log('✅ Chain ID:', publicClient.chain.id)
+  } catch (error) {
+    console.error('❌ Connection failed:', error)
+  }
+}
+
+testConnection()
+```
+
+```javascript JavaScript
+import { provider } from './ethers-config'
+
+async function testConnection() {
+  try {
+    const network = await provider.getNetwork()
+    const blockNumber = await provider.getBlockNumber()
+    console.log('✅ Connected! Chain ID:', network.chainId)
+    console.log('✅ Current block:', blockNumber)
+  } catch (error) {
+    console.error('❌ Connection failed:', error)
+  }
+}
+
+testConnection()
+```
+
+```python Python
+from web3 import Web3
+
+w3 = Web3(Web3.HTTPProvider('https://public-rpc.paxeer.app/rpc'))
+
+if w3.is_connected():
+    print(f'✅ Connected! Chain ID: {w3.eth.chain_id}')
+    print(f'✅ Current block: {w3.eth.block_number}')
+else:
+    print('❌ Connection failed')
+```
+
+</CodeGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Quick Start"
+    icon="rocket"
+    href="/quickstart"
+  >
+    Follow our getting started guide
+  </Card>
+  <Card
+    title="Smart Contracts"
+    icon="code"
+    href="/contracts"
+  >
+    Deploy and interact with contracts
+  </Card>
+  <Card
+    title="Examples"
+    icon="brackets-curly"
+    href="/examples"
+  >
+    View complete integration examples
+  </Card>
+  <Card
+    title="API Reference"
+    icon="book"
+    href="/api-reference"
+  >
+    Explore all available RPC methods
+  </Card>
+</CardGroup>

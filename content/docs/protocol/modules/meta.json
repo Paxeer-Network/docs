@@ -1,0 +1,13 @@
+{
+  "title": "Modules",
+  "pages": [
+    "index",
+    "evm",
+    "erc20",
+    "inflation",
+    "paxoracle",
+    "vesting",
+    "epochs",
+    "feemarket"
+  ]
+}

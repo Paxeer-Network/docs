@@ -1,0 +1,432 @@
+---
+title: "Transaction Statuses"
+description: "Learn about different transaction statuses on HyperPaxeer"
+icon: "list-check"
+---
+
+## Overview
+
+Understanding transaction statuses helps you build reliable applications on HyperPaxeer. This guide explains the lifecycle and finality of transactions.
+
+## Transaction Lifecycle
+
+<Steps>
+  <Step title="Pending">
+    Transaction is in the mempool, waiting to be included in a block.
+    
+    ```javascript
+    const tx = await signer.sendTransaction(txData);
+    console.log('Transaction hash:', tx.hash);
+    // Status: Pending
+    ```
+  </Step>
+
+  <Step title="Mined">
+    Transaction has been included in a block.
+    
+    ```javascript
+    const receipt = await tx.wait(1); // Wait for 1 confirmation
+    console.log('Block number:', receipt.blockNumber);
+    // Status: Mined (1 confirmation)
+    ```
+  </Step>
+
+  <Step title="Confirmed">
+    Transaction has received multiple block confirmations.
+    
+    ```javascript
+    const receipt = await tx.wait(3); // Wait for 3 confirmations
+    // Status: Confirmed (3 confirmations)
+    ```
+  </Step>
+
+  <Step title="Finalized">
+    Transaction is considered final and irreversible.
+    
+    ```javascript
+    const receipt = await tx.wait(12); // Wait for 12 confirmations
+    // Status: Finalized
+    ```
+  </Step>
+</Steps>
+
+## Checking Transaction Status
+
+### Using Transaction Hash
+
+<CodeGroup>
+
+```javascript ethers.js
+import { ethers } from 'ethers';
+
+const provider = new ethers.JsonRpcProvider('https://public-rpc.paxeer.app/rpc');
+
+async function getTransactionStatus(txHash) {
+  // Get transaction data
+  const tx = await provider.getTransaction(txHash);
+  
+  if (!tx) {
+    return { status: 'not_found' };
+  }
+  
+  // Get transaction receipt
+  const receipt = await provider.getTransactionReceipt(txHash);
+  
+  if (!receipt) {
+    return { 
+      status: 'pending',
+      nonce: tx.nonce,
+    };
+  }
+  
+  // Get current block number
+  const currentBlock = await provider.getBlockNumber();
+  const confirmations = currentBlock - receipt.blockNumber + 1;
+  
+  return {
+    status: receipt.status === 1 ? 'success' : 'failed',
+    blockNumber: receipt.blockNumber,
+    confirmations: confirmations,
+    gasUsed: receipt.gasUsed.toString(),
+    effectiveGasPrice: receipt.gasPrice.toString(),
+  };
+}
+
+// Usage
+const status = await getTransactionStatus('0x...');
+console.log('Transaction status:', status);
+```
+
+```typescript viem
+import { createPublicClient, http } from 'viem';
+import { paxeer } from './chains';
+
+const client = createPublicClient({
+  chain: paxeer,
+  transport: http(),
+});
+
+async function getTransactionStatus(hash) {
+  // Get transaction
+  const tx = await client.getTransaction({ hash });
+  
+  if (!tx) {
+    return { status: 'not_found' };
+  }
+  
+  // Get receipt
+  const receipt = await client.getTransactionReceipt({ hash });
+  
+  if (!receipt) {
+    return { status: 'pending' };
+  }
+  
+  // Get confirmations
+  const currentBlock = await client.getBlockNumber();
+  const confirmations = currentBlock - receipt.blockNumber + 1n;
+  
+  return {
+    status: receipt.status === 'success' ? 'success' : 'failed',
+    blockNumber: receipt.blockNumber,
+    confirmations: confirmations.toString(),
+    gasUsed: receipt.gasUsed.toString(),
+  };
+}
+```
+
+```python web3.py
+from web3 import Web3
+
+w3 = Web3(Web3.HTTPProvider('https://public-rpc.paxeer.app/rpc'))
+
+def get_transaction_status(tx_hash):
+    # Get transaction
+    try:
+        tx = w3.eth.get_transaction(tx_hash)
+    except:
+        return {'status': 'not_found'}
+    
+    # Try to get receipt
+    try:
+        receipt = w3.eth.get_transaction_receipt(tx_hash)
+    except:
+        return {'status': 'pending', 'nonce': tx['nonce']}
+    
+    # Get confirmations
+    current_block = w3.eth.block_number
+    confirmations = current_block - receipt['blockNumber'] + 1
+    
+    return {
+        'status': 'success' if receipt['status'] == 1 else 'failed',
+        'blockNumber': receipt['blockNumber'],
+        'confirmations': confirmations,
+        'gasUsed': receipt['gasUsed'],
+    }
+
+# Usage
+status = get_transaction_status('0x...')
+print(status)
+```
+
+</CodeGroup>
+
+## Finality Levels
+
+HyperPaxeer has different finality levels based on block confirmations:
+
+| Level | Confirmations | Time | Use Case |
+|-------|---------------|------|----------|
+| **Unsafe** | 0 | Immediate | UI updates only |
+| **Safe** | 1-2 | ~4 seconds | Most dApps |
+| **Confirmed** | 3-11 | ~6-22 seconds | Important operations |
+| **Finalized** | 12+ | ~24+ seconds | Critical/irreversible actions |
+
+<Warning>
+For high-value or critical operations, wait for at least 12 confirmations before considering the transaction finalized.
+</Warning>
+
+## Monitoring Transactions
+
+### Real-time Status Updates
+
+```typescript useTransactionStatus.ts
+import { useState, useEffect } from 'react';
+import { usePublicClient, useWaitForTransactionReceipt } from 'wagmi';
+
+export function useTransactionStatus(hash?: `0x${string}`) {
+  const [status, setStatus] = useState<'pending' | 'success' | 'failed'>('pending');
+  const [confirmations, setConfirmations] = useState(0);
+  
+  const { data: receipt, isLoading } = useWaitForTransactionReceipt({
+    hash,
+  });
+  
+  const client = usePublicClient();
+
+  useEffect(() => {
+    if (!receipt || !client) return;
+
+    setStatus(receipt.status === 'success' ? 'success' : 'failed');
+
+    // Update confirmations periodically
+    const interval = setInterval(async () => {
+      const currentBlock = await client.getBlockNumber();
+      const confs = currentBlock - receipt.blockNumber + 1n;
+      setConfirmations(Number(confs));
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [receipt, client]);
+
+  return { status, confirmations, receipt, isLoading };
+}
+```
+
+### Usage in React Component
+
+```typescript
+function TransactionTracker({ txHash }) {
+  const { status, confirmations, receipt } = useTransactionStatus(txHash);
+
+  return (
+    <div>
+      <p>Status: {status}</p>
+      <p>Confirmations: {confirmations}</p>
+      
+      {status === 'success' && confirmations >= 12 && (
+        <p className="text-green-600">✓ Transaction Finalized</p>
+      )}
+      
+      {status === 'failed' && (
+        <p className="text-red-600">✗ Transaction Failed</p>
+      )}
+    </div>
+  );
+}
+```
+
+## Transaction Receipt Details
+
+```javascript
+async function getDetailedReceipt(txHash) {
+  const receipt = await provider.getTransactionReceipt(txHash);
+  
+  return {
+    // Status
+    status: receipt.status, // 1 = success, 0 = failed
+    
+    // Block information
+    blockNumber: receipt.blockNumber,
+    blockHash: receipt.blockHash,
+    
+    // Gas usage
+    gasUsed: receipt.gasUsed.toString(),
+    gasPrice: receipt.gasPrice.toString(),
+    effectiveGasPrice: receipt.gasPrice.toString(),
+    
+    // Fee calculation
+    totalFee: (receipt.gasUsed * receipt.gasPrice).toString(),
+    
+    // Addresses
+    from: receipt.from,
+    to: receipt.to,
+    contractAddress: receipt.contractAddress, // If contract creation
+    
+    // Transaction details
+    transactionHash: receipt.hash,
+    transactionIndex: receipt.index,
+    
+    // Logs (events)
+    logs: receipt.logs,
+  };
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Wait for Appropriate Confirmations" icon="hourglass">
+    Different use cases need different confirmation levels:
+    
+    ```javascript
+    // UI update only - show immediately
+    const receipt = await tx.wait(0);
+    
+    // Standard dApp - wait for 1 confirmation
+    const receipt = await tx.wait(1);
+    
+    // Financial operation - wait for 3+ confirmations
+    const receipt = await tx.wait(3);
+    
+    // Critical operation - wait for finality
+    const receipt = await tx.wait(12);
+    ```
+  </Accordion>
+
+  <Accordion title="Handle Reorgs" icon="rotate">
+    Although rare, block reorganizations can happen:
+    
+    ```javascript
+    async function waitForSafeConfirmation(txHash) {
+      let previousBlockHash = null;
+      
+      while (true) {
+        const receipt = await provider.getTransactionReceipt(txHash);
+        
+        if (receipt && receipt.confirmations >= 3) {
+          const block = await provider.getBlock(receipt.blockNumber);
+          
+          if (previousBlockHash && block.hash !== previousBlockHash) {
+            console.warn('Reorg detected! Waiting more...');
+            previousBlockHash = block.hash;
+            continue;
+          }
+          
+          if (!previousBlockHash) {
+            previousBlockHash = block.hash;
+          }
+          
+          // No reorg detected
+          return receipt;
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Set Transaction Timeouts" icon="clock">
+    Don't wait indefinitely:
+    
+    ```javascript
+    async function waitWithTimeout(txPromise, timeoutMs = 60000) {
+      return Promise.race([
+        txPromise,
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Transaction timeout')), timeoutMs)
+        ),
+      ]);
+    }
+
+    // Usage
+    try {
+      const receipt = await waitWithTimeout(tx.wait());
+      console.log('Success:', receipt.hash);
+    } catch (error) {
+      if (error.message === 'Transaction timeout') {
+        console.log('Transaction taking too long, check status manually');
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Event Monitoring
+
+Watch for transaction events in real-time:
+
+```javascript
+// Listen for pending transactions
+provider.on('pending', (txHash) => {
+  console.log('New pending transaction:', txHash);
+});
+
+// Listen for mined blocks
+provider.on('block', async (blockNumber) => {
+  console.log('New block mined:', blockNumber);
+  
+  const block = await provider.getBlock(blockNumber);
+  console.log('Transactions in block:', block.transactions.length);
+});
+
+// Clean up listeners
+provider.removeAllListeners('pending');
+provider.removeAllListeners('block');
+```
+
+## Resources
+
+<CardGroup cols={2}>
+  <Card
+    title="Block Explorer"
+    icon="magnifying-glass"
+    href="https://paxscan.io"
+  >
+    Track transactions on PaxScan
+  </Card>
+  <Card
+    title="Network Status"
+    icon="signal-bars"
+    href="https://status.paxeer.app"
+  >
+    Check network health
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Transaction Fees"
+    icon="money-bill"
+    href="/app-developers/guides/transactions/fees"
+  >
+    Understand fee components
+  </Card>
+  <Card
+    title="Troubleshooting"
+    icon="wrench"
+    href="/app-developers/guides/transactions/troubleshooting"
+  >
+    Fix transaction issues
+  </Card>
+  <Card
+    title="Examples"
+    icon="code"
+    href="/examples"
+  >
+    View complete examples
+  </Card>
+</CardGroup>
+

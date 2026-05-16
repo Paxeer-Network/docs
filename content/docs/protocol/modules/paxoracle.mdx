@@ -1,0 +1,127 @@
+---
+title: "x/paxoracle"
+description: "Validator oracle module backing the OracleAggregator precompile"
+icon: "database"
+---
+
+## Overview
+
+`x/paxoracle` stores validator-submitted market prices and exposes aggregated prices to EVM contracts through the OracleAggregator precompile at `0x0000000000000000000000000000000000000903`.
+
+The module supports PaxSpot, HyperPax Perps, and other protocols that need validator-consensus price data with sub-second chain finality.
+
+## EVM precompile
+
+```solidity
+interface IOracleAggregator {
+    function getValidatorPrice(bytes32 marketId)
+        external
+        view
+        returns (int256 price, uint256 quorum, uint256 timestamp);
+
+    function submitPrice(bytes32 marketId, int256 price, uint256 confidence)
+        external
+        returns (bool success);
+}
+```
+
+| Field | Meaning |
+|---|---|
+| `marketId` | `bytes32` market identifier, commonly `keccak256("BTC/USD")` |
+| `price` | signed 18-decimal fixed-point price |
+| `confidence` | validator confidence value, typically `0 < confidence <= 1e18` |
+| `quorum` | number of validator attestations included in the aggregate |
+| `timestamp` | block timestamp or block-derived timestamp for the aggregate |
+
+## Read a validator price
+
+```solidity
+IOracleAggregator constant VOM =
+    IOracleAggregator(0x0000000000000000000000000000000000000903);
+
+function getBtcUsd() external view returns (int256 price, uint256 quorum) {
+    (price, quorum,) = VOM.getValidatorPrice(keccak256("BTC/USD"));
+}
+```
+
+## Submit a validator price
+
+<Warning>
+Only active validators can submit prices. Non-validator addresses should use `getValidatorPrice()` for reads and should not attempt to post attestations.
+</Warning>
+
+```solidity
+IOracleAggregator constant VOM =
+    IOracleAggregator(0x0000000000000000000000000000000000000903);
+
+function submitBtcUsd(int256 price) external returns (bool) {
+    return VOM.submitPrice({
+        marketId: keccak256("BTC/USD"),
+        price: price,
+        confidence: 1e18
+    });
+}
+```
+
+```typescript submit-price.ts
+import { createWalletClient, http, keccak256, parseUnits, stringToBytes } from 'viem'
+import { privateKeyToAccount } from 'viem/accounts'
+import { hyperpaxeer } from './chains'
+
+const account = privateKeyToAccount(process.env.VALIDATOR_EVM_PRIVATE_KEY as `0x${string}`)
+
+const wallet = createWalletClient({
+  account,
+  chain: hyperpaxeer,
+  transport: http('https://public-rpc.paxeer.app/rpc'),
+})
+
+await wallet.writeContract({
+  address: '0x0000000000000000000000000000000000000903',
+  abi: [{
+    type: 'function',
+    name: 'submitPrice',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'marketId', type: 'bytes32' },
+      { name: 'price', type: 'int256' },
+      { name: 'confidence', type: 'uint256' },
+    ],
+    outputs: [{ name: 'success', type: 'bool' }],
+  }],
+  functionName: 'submitPrice',
+  args: [
+    keccak256(stringToBytes('BTC/USD')),
+    parseUnits('97250', 18),
+    parseUnits('1', 18),
+  ],
+})
+```
+
+## Aggregation model
+
+`x/paxoracle` verifies submissions against the active validator set, filters stale submissions, and returns a confidence-weighted median for each market.
+
+| Step | Description |
+|---|---|
+| Validator check | The submitter must be an active validator |
+| Market lookup | The `marketId` maps to an enabled market |
+| Staleness filter | Old attestations are excluded from the aggregate |
+| Quorum check | The aggregate must include enough valid submissions |
+| Median | Valid submissions are aggregated into a confidence-weighted median |
+
+## Common failure modes
+
+| Failure | Cause |
+|---|---|
+| Submit reverts | Caller is not an active validator |
+| No price returned | Market has no valid recent submissions |
+| Quorum too low | Too few validators submitted within the freshness window |
+| Invalid confidence | Confidence is zero or outside the accepted range |
+| Stale aggregate | Submissions are older than the configured staleness threshold |
+
+## Related docs
+
+- [PaxSpot precompiles](/paxspot/precompiles)
+- [EVM extensions](/develop/smart-contracts/list-evm-extensions)
+- [Current network facts](/current-network)

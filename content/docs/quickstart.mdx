@@ -1,0 +1,194 @@
+---
+title: "Quick Start"
+description: "Connect a wallet, run a node, and deploy your first contract on HyperPaxeer in under ten minutes"
+icon: "rocket"
+---
+
+## 1. Connect a Wallet
+
+HyperPaxeer is a standard EVM chain (Chain ID `125`). Any Ethereum-compatible wallet works — MetaMask, Rabby, or the native **PaxPort Wallet**.
+
+<AccordionGroup>
+  <Accordion title="Manual — MetaMask / Rabby" icon="wallet">
+    Open your wallet's network settings and add:
+    
+    | Field | Value |
+    |-------|-------|
+    | Network Name | `HyperPaxeer` |
+    | RPC URL | `https://public-rpc.paxeer.app/rpc` |
+    | Chain ID | `125` |
+    | Currency Symbol | `HPX` |
+    | Block Explorer | `https://paxscan.io` |
+  </Accordion>
+  
+  <Accordion title="PaxPort Wallet" icon="shield-check">
+    PaxPort ships with HyperPaxeer pre-configured — no manual network setup required. Download from [paxeer.app/paxport](https://paxeer.app/paxport).
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## 2. Run a Node (Optional)
+
+The `hpx` CLI deploys Docker-based RPC or Validator nodes with a single command. Minimum requirements: 16 GB RAM, 6 CPU cores, 300 GB disk, Ubuntu 22.04+.
+
+```bash
+curl -sSL https://hyperpaxeer.com/hyper-os/new/get-hpx.sh | sudo bash
+```
+
+The installer checks your system, installs dependencies, and launches an interactive setup wizard. After setup:
+
+```bash
+hpx deploy my-rpc rpc        # deploy an RPC node
+hpx deploy my-val validator   # deploy a validator node
+hpx dashboard                 # live status of all nodes
+```
+
+<Tip>
+Each node gets its own Docker Compose stack under `/root/hyperpax-nodes/<name>/` with isolated ports that auto-increment.
+</Tip>
+
+| Command | Purpose |
+|---------|---------|
+| `hpx list` | List all registered nodes |
+| `hpx info <name>` | Sync status, height, peers |
+| `hpx logs <name>` | Stream node logs |
+| `hpx start all` / `hpx stop all` | Bulk lifecycle |
+| `hpx capacity` | Show remaining server resources |
+
+See [Run a Validator](/validate/setup/run-a-validator) for the full operator guide.
+
+---
+
+## 3. Deploy a Smart Contract
+
+HyperPaxeer is fully compatible with Solidity tooling. Foundry is the recommended framework.
+
+<Tabs>
+  <Tab title="Foundry">
+    ```bash
+    # Install Foundry
+    curl -L https://foundry.paradigm.xyz | bash && foundryup
+
+    # Create project
+    forge init my-project && cd my-project
+
+    # Deploy (use --legacy --slow for Alexandria Fork chains)
+    forge create src/Counter.sol:Counter \
+      --rpc-url https://public-rpc.paxeer.app/rpc \
+      --private-key $PRIVATE_KEY \
+      --legacy --slow
+    ```
+  </Tab>
+
+  <Tab title="Hardhat">
+    ```bash
+    npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox
+    ```
+
+    ```javascript hardhat.config.js
+    module.exports = {
+      solidity: "0.8.24",
+      networks: {
+        hyperpaxeer: {
+          url: "https://public-rpc.paxeer.app/rpc",
+          chainId: 125,
+          accounts: [process.env.PRIVATE_KEY]
+        }
+      }
+    };
+    ```
+
+    ```bash
+    npx hardhat run scripts/deploy.js --network hyperpaxeer
+    ```
+  </Tab>
+
+  <Tab title="Remix">
+    1. Open [remix.ethereum.org](https://remix.ethereum.org)
+    2. Write or import your contract
+    3. Compile with Solidity 0.8.24+
+    4. Connect MetaMask (ensure Chain ID 125 is selected)
+    5. Deploy via **Injected Provider — MetaMask**
+  </Tab>
+</Tabs>
+
+<Warning>
+Store private keys in a `.env` file and never commit them to version control.
+</Warning>
+
+---
+
+## 4. Verify on PaxScan
+
+```bash
+forge verify-contract \
+  --chain-id 125 \
+  --compiler-version v0.8.24 \
+  DEPLOYED_ADDRESS \
+  src/Counter.sol:Counter \
+  --verifier blockscout \
+  --verifier-url https://paxscan.io/api
+```
+
+---
+
+## 5. Integrate in a Frontend
+
+```typescript wagmi-config.ts
+import { createConfig, http } from 'wagmi'
+import { defineChain } from 'viem'
+
+export const hyperpaxeer = defineChain({
+  id: 125,
+  name: 'HyperPaxeer',
+  network: 'hyperpaxeer',
+  nativeCurrency: { decimals: 18, name: 'HyperPaxeer', symbol: 'HPX' },
+  rpcUrls: {
+    default: { http: ['https://public-rpc.paxeer.app/rpc'] },
+  },
+  blockExplorers: {
+    default: { name: 'PaxScan', url: 'https://paxscan.io' },
+  },
+})
+
+export const config = createConfig({
+  chains: [hyperpaxeer],
+  transports: { [hyperpaxeer.id]: http() },
+})
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Network Configuration"
+    icon="gear"
+    href="/configuration"
+  >
+    wagmi, viem, ethers.js, and web3.js setup
+  </Card>
+  <Card
+    title="Smart Contracts"
+    icon="code"
+    href="/contracts"
+  >
+    Deployment patterns, verification, and interaction guides
+  </Card>
+  <Card
+    title="Architecture"
+    icon="sitemap"
+    href="/concepts/architecture/overview"
+  >
+    Dual-VM design, precompiles, and the x/paxoracle module
+  </Card>
+  <Card
+    title="JSON-RPC Reference"
+    icon="terminal"
+    href="/rpc"
+  >
+    Test RPC methods against the live network
+  </Card>
+</CardGroup>

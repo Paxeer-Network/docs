@@ -1,0 +1,18 @@
+{
+  "title": "Protocol",
+  "pages": [
+    "index",
+    "---Modules---",
+    "modules",
+    "---Concepts---",
+    "concepts",
+    "---CLI---",
+    "cli",
+    "---Resources---",
+    "ibc-channels",
+    "module-accounts",
+    "metrics",
+    "bugs",
+    "faq"
+  ]
+}

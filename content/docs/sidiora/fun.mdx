@@ -1,0 +1,98 @@
+---
+title: "Sidiora.fun"
+description: "Network-operated launchpad AMM with virtual USDL reserves, per-pool Beacon proxies, Opticals, and launch automation"
+icon: "rocket"
+---
+
+## Overview
+
+Sidiora.fun is the network-operated launchpad AMM for Paxeer Network. It combines virtual USDL reserve pricing, per-pool Beacon proxies, ERC-20 launch tokens, NFT identity, configurable Opticals, and routed swaps.
+
+<CardGroup cols={3}>
+  <Card title="Virtual USDL reserves" icon="coins">
+    Pools price launches against virtual USDL liquidity before mature liquidity forms.
+  </Card>
+  <Card title="Beacon pool upgrades" icon="tower-broadcast">
+    Each pool is a Beacon proxy that can be upgraded atomically at the pool implementation layer.
+  </Card>
+  <Card title="Opticals" icon="puzzle-piece">
+    Hook-like extensions add taxes, cooldowns, max-wallet checks, anti-snipe rules, and buyback logic.
+  </Card>
+</CardGroup>
+
+## Architecture
+
+| Layer | Contracts |
+|---|---|
+| Periphery | `Router`, `Quoter`, `FeesRouter` |
+| Core logic | `SidioraFactory`, `SidioraPool`, `SidioraERC20`, `SidioraNFT` |
+| Data and config | `PoolRegistry`, `ProtocolConfig`, `EventEmitter` |
+| Governance | `Treasury`, `Timelock`, `GovernanceModule`, `FeeAccumulator` |
+| Opticals | `OpticalRegistry`, `AntiSnipeOptical`, `MaxWalletOptical`, `TaxOptical`, `CooldownOptical`, `BuybackBurnOptical` |
+| Upgradeability | UUPS proxies and `PoolBeacon` |
+
+## Production proxy addresses
+
+| Contract | Proxy address |
+|---|---|
+| EventEmitter | `0x6679aF411d534de222C32ed0AF94C3BD67090672` |
+| ProtocolConfig | `0x325e6Fb9c3505A35785365674089aEf8497C697B` |
+| Treasury | `0xe3705EaC51000F40e44D8039DF394f8b8FBAFaA3` |
+| GovernanceModule | `0xAA154A446f18E80E70b53357597E40CDD1D07E37` |
+| PoolRegistry | `0x1F22f11325197fae71937598F6935cc4e9231970` |
+| FeeAccumulator | `0x5C3A7A87eB2DfC965F2764E28524FE77c0003810` |
+| SidioraNFT | `0xb36ac5052b43Eef2807D4F91c494cD5D8EeD3fEa` |
+| SidioraFactory | `0x322170E27d0c5Bd252337791fadED31dc4E85cA6` |
+| OpticalRegistry | `0xA62b58fe655B45179449003279416575B7241449` |
+| Router | `0xB2D63300FE8b3508A83728e8f36B98e845eBD980` |
+| Quoter | `0xeDb3B45E320A8ab2306Fa1C303742f2478fd3E0a` |
+| FeesRouter | `0xebf10213e58cc694aFDd06848faa363b41395898` |
+| LaunchpadOpticalFactory | `0x385198712E5B288d64c3E1D3cb91bBeFD7B77b60` |
+
+## Implementation and module addresses
+
+| Contract | Address |
+|---|---|
+| EventEmitter implementation | `0xC7c0071463ADA653ed1691938a91d2404D2dc694` |
+| ProtocolConfig implementation | `0xC826788820FB4310B60337Db127261C744D37827` |
+| Treasury implementation | `0xc72eD2E7422290b0D6ae6FbBf461D8e2c4820A62` |
+| GovernanceModule implementation | `0xe955b10d82e1692A14Bd361366f55d7E9d405Bbd` |
+| PoolRegistry implementation | `0x779EF19C7Fd0bCA0ec1A29bEfF332197c475ba41` |
+| FeeAccumulator implementation | `0x5d951A3910105C235Dde0eD125f062195e6C295d` |
+| SidioraPool implementation | `0xDc84Cdf2D2553FDa2aCa8741409Cb5AB5b7c0942` |
+| PoolBeacon | `0xe769859e5a9AEd339931E2717AF00606fA0e847f` |
+| SidioraNFT implementation | `0xbbd443de09eb9881cDC27b999441F228fDd53828` |
+| SidioraFactory implementation | `0x6E33eb03b59b5Eac5D5db3519db221FB754fc97d` |
+| OpticalRegistry implementation | `0x9cEB5828aA38495248710aF280B2C21CD48040E6` |
+| Router implementation | `0xb35eaa8E113910c8A7179C7c8e062c7Be28847A1` |
+| Quoter implementation | `0x0cb1B2fb940a7875de03D812eD0B3b9538E25e24` |
+| FeesRouter implementation | `0x165F4992E12FC91EADBF9Dd6927ab330B5E2924d` |
+| Timelock | `0xEc2B7b640469607A45615385e713e656B7e667b9` |
+| AntiSnipeOptical | `0x2235a03cC711bb384Ff42CcB7c6B727612bbCBE8` |
+| MaxWalletOptical | `0xbc02402CD5385f5f67F0Dcc9b91C93eCF4107A7b` |
+| TaxOptical | `0xaaA80699C008e34d537Bb0C8E24bE6f69b5cd9F2` |
+| CooldownOptical | `0x7E739D6A78F07Ab728A9f3217DfF4a994F87fBf1` |
+| BuybackBurnOptical | `0x596467B82722dba67b6ACb0a7dc83B530a4C90BD` |
+| LaunchpadOpticalFactory implementation | `0x660b5Aa3bc80490ED8475d7766658318604a55AC` |
+
+## Core token addresses
+
+| Token | Address |
+|---|---|
+| USDL | `0x7c69c84daAEe90B21eeCABDb8f0387897E9B7B37` |
+| SID | `0x86949e4CdB89496490890B67C9cfF63eD8efB4b1` |
+
+## Developer usage
+
+Use Router for writes and Quoter for read-only price previews.
+
+```typescript
+const sidioraFunRouter = '0xB2D63300FE8b3508A83728e8f36B98e845eBD980'
+const sidioraFunQuoter = '0xeDb3B45E320A8ab2306Fa1C303742f2478fd3E0a'
+```
+
+## Related protocols
+
+- [Sidiora.ag](/sidiora/ag)
+- [HyperPax DEX](/sidiora/dex)
+- [HyperPax Perps](/sidiora/perps)

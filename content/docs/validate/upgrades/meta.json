@@ -1,0 +1,10 @@
+{
+  "title": "Upgrades",
+  "pages": [
+    "index",
+    "automated-upgrades",
+    "manual-upgrades",
+    "rollback",
+    "hard-fork-upgrades"
+  ]
+}

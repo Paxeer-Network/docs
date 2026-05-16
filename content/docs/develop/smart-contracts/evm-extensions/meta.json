@@ -1,0 +1,11 @@
+{
+  "title": "EVM Extensions",
+  "pages": [
+    "evm-extensions",
+    "authorization",
+    "staking",
+    "distribution",
+    "ibc-transfer",
+    "vesting"
+  ]
+}

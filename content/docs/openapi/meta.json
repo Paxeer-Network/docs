@@ -1,0 +1,9 @@
+{
+  "title": "OpenAPI",
+  "pages": [
+    "index",
+    "launchpad-graphql",
+    "perpetual-graphql",
+    "stableswap-graphql"
+  ]
+}

@@ -1,0 +1,337 @@
+---
+title: "Smart Contracts"
+description: "Deploy, verify, and interact with Solidity contracts on HyperPaxeer"
+icon: "code"
+---
+
+<Info>
+HyperPaxeer is fully EVM-compatible. Running on the **Alexandria Fork** with **Hyperpax-OS Cronos**, all standard Ethereum tooling works — Foundry, Hardhat, Remix, ethers.js, wagmi, and viem. Use `--legacy --slow` flags with Foundry for reliable transaction inclusion.
+</Info>
+
+## Overview
+
+Deploy and interact with smart contracts on HyperPaxeer (Chain ID `125`). Foundry is the recommended framework; Hardhat and Remix are also supported.
+
+## Deployment Options
+
+<Tabs>
+  <Tab title="Hardhat">
+    ### Deploy with Hardhat
+
+    Configure Hardhat to deploy on HyperPaxeer.
+
+    #### 1. Install dependencies
+
+    ```bash
+    npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox
+    ```
+
+    #### 2. Configure hardhat.config.js
+
+    ```javascript hardhat.config.js
+    require("@nomicfoundation/hardhat-toolbox");
+
+    module.exports = {
+      solidity: "0.8.20",
+      networks: {
+        paxeer: {
+          url: "https://public-rpc.paxeer.app/rpc",
+          chainId: 125,
+          accounts: [process.env.PRIVATE_KEY]
+        }
+      },
+      etherscan: {
+        apiKey: {
+          hyperpaxeer: "any-string"
+        },
+        customChains: [
+          {
+            network: "hyperpaxeer",
+            chainId: 125,
+            urls: {
+              apiURL: "https://paxscan.io/api",
+              browserURL: "https://paxscan.io"
+            }
+          }
+        ]
+      }
+    };
+    ```
+
+    #### 3. Deploy
+
+    ```bash
+    npx hardhat run scripts/deploy.js --network hyperpaxeer
+    ```
+
+    <Tip>
+    Store your private key in a `.env` file and never commit it to version control.
+    </Tip>
+  </Tab>
+
+  <Tab title="Foundry">
+    ### Deploy with Foundry
+
+    Use Foundry to deploy contracts on HyperPaxeer.
+
+    #### 1. Install Foundry
+
+    ```bash
+    curl -L https://foundry.paradigm.xyz | bash
+    foundryup
+    ```
+
+    #### 2. Create project
+
+    ```bash
+    forge init my-project
+    cd my-project
+    ```
+
+    #### 3. Deploy
+
+    ```bash
+    forge create src/MyContract.sol:MyContract \
+      --rpc-url https://public-rpc.paxeer.app/rpc \
+      --private-key $PRIVATE_KEY \
+      --legacy --slow
+    ```
+
+    <Tip>
+    Use `--verify` flag to verify your contract on PaxScan after deployment.
+    </Tip>
+  </Tab>
+
+  <Tab title="Remix">
+    ### Deploy with Remix
+
+    Use Remix IDE to deploy contracts via MetaMask.
+
+    <Steps>
+      <Step title="Open Remix">
+        Go to [remix.ethereum.org](https://remix.ethereum.org)
+      </Step>
+
+      <Step title="Write or Import Contract">
+        Write or import your Solidity contract in the file explorer
+      </Step>
+
+      <Step title="Compile Contract">
+        Use the Solidity compiler to compile your contract
+      </Step>
+
+      <Step title="Connect MetaMask">
+        Connect MetaMask to HyperPaxeer (Chain ID: 125)
+      </Step>
+
+      <Step title="Select Environment">
+        In the Deploy & Run tab, select "Injected Provider - MetaMask"
+      </Step>
+
+      <Step title="Deploy">
+        Click "Deploy" and confirm the transaction in MetaMask
+      </Step>
+    </Steps>
+
+    <Info>
+    Make sure your MetaMask is connected to HyperPaxeer (Chain ID 125) before deploying.
+    </Info>
+  </Tab>
+</Tabs>
+
+## Example Contract
+
+Here's a simple ERC-20 token contract example:
+
+```solidity MyToken.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+contract MyToken is ERC20 {
+    constructor() ERC20("MyToken", "MTK") {
+        _mint(msg.sender, 1000000 * 10 ** decimals());
+    }
+}
+```
+
+### Deploying the Example
+
+<Tabs>
+  <Tab title="Hardhat">
+    ```javascript scripts/deploy.js
+    const hre = require("hardhat");
+
+    async function main() {
+      const MyToken = await hre.ethers.getContractFactory("MyToken");
+      const token = await MyToken.deploy();
+      await token.waitForDeployment();
+
+      console.log("MyToken deployed to:", await token.getAddress());
+    }
+
+    main().catch((error) => {
+      console.error(error);
+      process.exitCode = 1;
+    });
+    ```
+
+    Run the deployment:
+    ```bash
+    npx hardhat run scripts/deploy.js --network paxeer
+    ```
+  </Tab>
+
+  <Tab title="Foundry">
+    ```bash
+    forge create src/MyToken.sol:MyToken \
+      --rpc-url https://public-rpc.paxeer.app/rpc \
+      --private-key $PRIVATE_KEY \
+      --chain-id 125
+    ```
+  </Tab>
+</Tabs>
+
+## Verifying Contracts
+
+After deployment, verify your contract on PaxScan for transparency and easier interaction.
+
+### Using Hardhat
+
+```bash
+npx hardhat verify --network paxeer DEPLOYED_CONTRACT_ADDRESS
+```
+
+### Using Foundry
+
+```bash
+forge verify-contract \
+  --chain-id 125 \
+  --compiler-version v0.8.20 \
+  DEPLOYED_CONTRACT_ADDRESS \
+  src/MyToken.sol:MyToken \
+  --etherscan-api-key YOUR_API_KEY
+```
+
+## Interacting with Contracts
+
+### Using ethers.js
+
+```javascript
+import { ethers } from 'ethers';
+
+const provider = new ethers.JsonRpcProvider(
+  'https://public-rpc.paxeer.app/rpc'
+);
+
+const contract = new ethers.Contract(
+  contractAddress,
+  contractABI,
+  provider
+);
+
+// Read contract data
+const balance = await contract.balanceOf(address);
+
+// Write contract data (requires signer)
+const signer = await provider.getSigner();
+const contractWithSigner = contract.connect(signer);
+await contractWithSigner.transfer(recipientAddress, amount);
+```
+
+### Using wagmi
+
+```typescript
+import { useReadContract, useWriteContract } from 'wagmi';
+
+// Read contract
+const { data: balance } = useReadContract({
+  address: '0x...',
+  abi: tokenABI,
+  functionName: 'balanceOf',
+  args: [userAddress],
+});
+
+// Write contract
+const { writeContract } = useWriteContract();
+
+function transfer() {
+  writeContract({
+    address: '0x...',
+    abi: tokenABI,
+    functionName: 'transfer',
+    args: [recipientAddress, amount],
+  });
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Gas Optimization">
+    - Use appropriate data types (uint256 vs uint8)
+    - Minimize storage writes
+    - Use events for logging instead of storage
+    - Batch operations when possible
+  </Accordion>
+
+  <Accordion title="Security">
+    - Use OpenZeppelin contracts for standards
+    - Implement access control
+    - Validate all inputs
+    - Test thoroughly before mainnet deployment
+    - Consider getting an audit for critical contracts
+  </Accordion>
+
+  <Accordion title="Testing">
+    - Write comprehensive unit tests
+    - Test locally or on private networks before mainnet
+    - Test edge cases and failure scenarios
+    - Use fuzzing for complex contracts
+  </Accordion>
+</AccordionGroup>
+
+## Network Information
+
+| Parameter | Value |
+|-----------|-------|
+| Network Name | HyperPaxeer |
+| RPC URL | `https://public-rpc.paxeer.app/rpc` |
+| Chain ID | `125` |
+| Currency | HPX (`ahpx`, 18 decimals) |
+| Block Explorer | `https://paxscan.io` |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Configuration"
+    icon="gear"
+    href="/configuration"
+  >
+    Configure different libraries for HyperPaxeer
+  </Card>
+  <Card
+    title="Examples"
+    icon="brackets-curly"
+    href="/examples"
+  >
+    View complete integration examples
+  </Card>
+  <Card
+    title="API Reference"
+    icon="book"
+    href="/api-reference"
+  >
+    Explore all available RPC methods
+  </Card>
+  <Card
+    title="Tools"
+    icon="toolbox"
+    href="/tools"
+  >
+    Recommended SDKs and development tools
+  </Card>
+</CardGroup>
+

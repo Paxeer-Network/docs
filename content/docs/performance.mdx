@@ -1,0 +1,85 @@
+---
+title: "Performance"
+description: "Official HyperPaxeer mainnet performance metrics, validator distribution, and RPC fleet data"
+icon: "gauge-high"
+---
+
+## Summary
+
+The April 2026 performance report measures HyperPaxeer as a sub-second EVM L1 with deterministic CometBFT finality and a globally distributed RPC fleet.
+
+<CardGroup cols={3}>
+  <Card title="277 ms average block time" icon="bolt">
+    197-358 ms observed range with 341 ms p95.
+  </Card>
+  <Card title="Instant deterministic finality" icon="shield-check">
+    CometBFT finality with `timeout_commit = 0`.
+  </Card>
+  <Card title="48 RPC nodes online" icon="globe">
+    47 EVM RPC nodes online across 14 active regions.
+  </Card>
+</CardGroup>
+
+## Block production
+
+| Metric | Value |
+|---|---:|
+| Average block time | `277 ms` |
+| Minimum block time | `197 ms` |
+| Maximum block time | `358 ms` |
+| P95 block time | `341 ms` |
+| Standard deviation | `40.3 ms` |
+| Consensus engine | CometBFT `v0.38.15` |
+| `timeout_commit` | `0` |
+| Finality | Instant deterministic finality |
+
+## Validator set
+
+| Metric | Value |
+|---|---:|
+| Active validators | `10` |
+| Total voting power | `167,294,521` |
+| Voting-power range | `5.9%` to `13.1%` |
+| Nakamoto coefficient | `4` |
+
+The validator set is intentionally balanced: no validator controls enough voting power to dominate proposal or finality behavior alone.
+
+## Chain activity
+
+| Metric | Value |
+|---|---:|
+| Blocks analyzed | `5.25M+` |
+| Transactions | `~2M` |
+| Unique addresses | `27K+` |
+| Contracts | `1.4K+` |
+| Live throughput | `0.41 tx/s` |
+| Peak block density | `3 tx/block` |
+| Active blocks | `11%` |
+
+<Info>
+Live throughput reflects current demand, not maximum chain capacity.
+</Info>
+
+## Infrastructure
+
+| Metric | Value |
+|---|---:|
+| RPC nodes online | `48` |
+| EVM RPC nodes online | `47` |
+| Active regions | `14` |
+| Best observed RPC latency | `4.2 ms` |
+| Europe latency band | `4-65 ms` |
+| United States latency band | `215-390 ms` |
+
+## What developers should expect
+
+- Transactions confirm in the next finalized block under normal network conditions.
+- Public JSON-RPC is available at `https://public-rpc.paxeer.app/rpc`.
+- Use `paxscan.io` to inspect confirmed blocks, transactions, contracts, and addresses.
+- Contracts that assume Ethereum-like block cadence should be reviewed for sub-second block timing.
+
+## Related docs
+
+- [Current network facts](/current-network)
+- [Network status](/network-status)
+- [Architecture overview](/concepts/architecture/overview)

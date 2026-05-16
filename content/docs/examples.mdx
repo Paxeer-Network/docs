@@ -1,0 +1,693 @@
+---
+title: "Code Examples"
+description: "Integration guides and code samples for building on HyperPaxeer"
+icon: "brackets-curly"
+---
+
+## Overview
+
+Code examples and integration guides for building on HyperPaxeer. All examples work with standard Ethereum tools and libraries.
+
+## Wallet Connection
+
+<Tabs>
+  <Tab title="wagmi">
+    ### Connect Wallet with wagmi
+    
+    React component for connecting wallets to HyperPaxeer.
+    
+    ```typescript WalletConnect.tsx
+    'use client'
+
+    import { useAccount, useConnect, useDisconnect } from 'wagmi'
+    import { Button } from '@/components/ui/button'
+
+    export function WalletConnect() {
+      const { address, isConnected } = useAccount()
+      const { connect, connectors } = useConnect()
+      const { disconnect } = useDisconnect()
+
+      if (isConnected) {
+        return (
+          <div className="space-y-2">
+            <p>Connected: {address}</p>
+            <Button onClick={() => disconnect()}>
+              Disconnect
+            </Button>
+          </div>
+        )
+      }
+
+      return (
+        <div className="space-y-2">
+          {connectors.map((connector) => (
+            <Button
+              key={connector.id}
+              onClick={() => connect({ connector })}
+            >
+              Connect {connector.name}
+            </Button>
+          ))}
+        </div>
+      )
+    }
+    ```
+    
+    <Tip>
+    Make sure you've configured wagmi with HyperPaxeer in your `wagmi-config.ts` file.
+    </Tip>
+  </Tab>
+
+  <Tab title="ethers.js">
+    ### Connect Wallet with ethers.js
+    
+    ```javascript
+    import { ethers } from 'ethers';
+
+    async function connectWallet() {
+      if (typeof window.ethereum === 'undefined') {
+        alert('Please install MetaMask!');
+        return;
+      }
+
+      try {
+        // Request account access
+        const accounts = await window.ethereum.request({
+          method: 'eth_requestAccounts'
+        });
+
+        // Create provider
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+
+        const address = await signer.getAddress();
+        const balance = await provider.getBalance(address);
+
+        console.log('Connected:', address);
+        console.log('Balance:', ethers.formatEther(balance), 'HPX');
+
+        return { provider, signer, address };
+      } catch (error) {
+        console.error('Error connecting wallet:', error);
+      }
+    }
+
+    // Usage
+    const wallet = await connectWallet();
+    ```
+  </Tab>
+
+  <Tab title="Web3Modal">
+    ### Connect with Web3Modal
+    
+    ```typescript
+    import { createWeb3Modal, defaultWagmiConfig } from '@web3modal/wagmi/react'
+    import { WagmiConfig } from 'wagmi'
+    import { paxeer } from './chains'
+
+    const projectId = 'YOUR_PROJECT_ID'
+
+    const metadata = {
+      name: 'My dApp',
+      description: 'My dApp description',
+      url: 'https://myapp.com',
+      icons: ['https://myapp.com/icon.svg']
+    }
+
+    const chains = [paxeer]
+    const wagmiConfig = defaultWagmiConfig({ chains, projectId, metadata })
+
+    createWeb3Modal({ wagmiConfig, projectId, chains })
+
+    function App() {
+      return (
+        <WagmiConfig config={wagmiConfig}>
+          <YourApp />
+        </WagmiConfig>
+      )
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Send Transactions
+
+<Tabs>
+  <Tab title="Send HPX">
+    ### Send Native HPX Tokens
+    
+    ```typescript SendPax.tsx
+    'use client'
+
+    import { useSendTransaction } from 'wagmi'
+    import { parseEther } from 'viem'
+    import { Button } from '@/components/ui/button'
+    import { Input } from '@/components/ui/input'
+    import { useState } from 'react'
+
+    export function SendPax() {
+      const [to, setTo] = useState('')
+      const [amount, setAmount] = useState('')
+      const { sendTransaction, data, isPending, isSuccess } = useSendTransaction()
+
+      const handleSend = () => {
+        sendTransaction({
+          to: to as `0x${string}`,
+          value: parseEther(amount),
+        })
+      }
+
+      return (
+        <div className="space-y-4">
+          <Input
+            placeholder="Recipient address (0x...)"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+          />
+          <Input
+            placeholder="Amount (HPX)"
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
+          <Button 
+            onClick={handleSend} 
+            disabled={isPending || !to || !amount}
+          >
+            {isPending ? 'Sending...' : 'Send HPX'}
+          </Button>
+          {isSuccess && (
+            <p className="text-green-600">
+              Transaction: {data}
+            </p>
+          )}
+        </div>
+      )
+    }
+    ```
+  </Tab>
+
+  <Tab title="ethers.js">
+    ### Send Transaction with ethers.js
+    
+    ```javascript
+    import { ethers } from 'ethers';
+
+    async function sendTransaction(toAddress, amount) {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+
+      const tx = {
+        to: toAddress,
+        value: ethers.parseEther(amount)
+      };
+
+      try {
+        const transaction = await signer.sendTransaction(tx);
+        console.log('Transaction sent:', transaction.hash);
+
+        // Wait for confirmation
+        const receipt = await transaction.wait();
+        console.log('Transaction confirmed:', receipt.hash);
+
+        return receipt;
+      } catch (error) {
+        console.error('Error sending transaction:', error);
+        throw error;
+      }
+    }
+
+    // Usage
+    await sendTransaction('0x...', '1.5');
+    ```
+  </Tab>
+</Tabs>
+
+## Contract Interactions
+
+<Tabs>
+  <Tab title="Read Contract">
+    ### Read Contract Data
+    
+    ```typescript TokenBalance.tsx
+    'use client'
+
+    import { useReadContract } from 'wagmi'
+    import { formatUnits } from 'viem'
+
+    const ERC20_ABI = [
+      {
+        name: 'balanceOf',
+        type: 'function',
+        stateMutability: 'view',
+        inputs: [{ name: 'owner', type: 'address' }],
+        outputs: [{ name: 'balance', type: 'uint256' }],
+      },
+      {
+        name: 'decimals',
+        type: 'function',
+        stateMutability: 'view',
+        inputs: [],
+        outputs: [{ name: '', type: 'uint8' }],
+      },
+    ] as const
+
+    export function TokenBalance({ 
+      address, 
+      tokenAddress 
+    }: { 
+      address: string; 
+      tokenAddress: string 
+    }) {
+      const { data: balance, isLoading: balanceLoading } = useReadContract({
+        address: tokenAddress as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: 'balanceOf',
+        args: [address as `0x${string}`],
+      })
+
+      const { data: decimals } = useReadContract({
+        address: tokenAddress as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: 'decimals',
+      })
+
+      if (balanceLoading) return <div>Loading...</div>
+
+      const formattedBalance = balance && decimals 
+        ? formatUnits(balance, decimals)
+        : '0'
+
+      return (
+        <div>
+          Balance: {formattedBalance} tokens
+        </div>
+      )
+    }
+    ```
+  </Tab>
+
+  <Tab title="Write Contract">
+    ### Write to Contract
+    
+    ```typescript TransferTokens.tsx
+    'use client'
+
+    import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+    import { parseUnits } from 'viem'
+    import { Button } from '@/components/ui/button'
+    import { Input } from '@/components/ui/input'
+    import { useState } from 'react'
+
+    const ERC20_ABI = [
+      {
+        name: 'transfer',
+        type: 'function',
+        stateMutability: 'nonpayable',
+        inputs: [
+          { name: 'to', type: 'address' },
+          { name: 'amount', type: 'uint256' }
+        ],
+        outputs: [{ name: '', type: 'bool' }],
+      },
+    ] as const
+
+    export function TransferTokens({ tokenAddress }: { tokenAddress: string }) {
+      const [to, setTo] = useState('')
+      const [amount, setAmount] = useState('')
+
+      const { 
+        data: hash,
+        writeContract,
+        isPending 
+      } = useWriteContract()
+
+      const { isLoading: isConfirming, isSuccess } = 
+        useWaitForTransactionReceipt({ hash })
+
+      async function handleTransfer() {
+        writeContract({
+          address: tokenAddress as `0x${string}`,
+          abi: ERC20_ABI,
+          functionName: 'transfer',
+          args: [
+            to as `0x${string}`,
+            parseUnits(amount, 18)
+          ],
+        })
+      }
+
+      return (
+        <div className="space-y-4">
+          <Input
+            placeholder="Recipient address"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+          />
+          <Input
+            placeholder="Amount"
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
+          <Button 
+            onClick={handleTransfer}
+            disabled={isPending || isConfirming || !to || !amount}
+          >
+            {isPending || isConfirming ? 'Confirming...' : 'Transfer'}
+          </Button>
+          {isSuccess && (
+            <div className="text-green-600">
+              Transfer successful! 
+              <a href={`https://paxscan.io/tx/${hash}`} target="_blank">
+                View transaction
+              </a>
+            </div>
+          )}
+        </div>
+      )
+    }
+    ```
+  </Tab>
+
+  <Tab title="ethers.js">
+    ### Contract Interaction with ethers.js
+    
+    ```javascript
+    import { ethers } from 'ethers';
+
+    const ERC20_ABI = [
+      "function balanceOf(address owner) view returns (uint256)",
+      "function transfer(address to, uint256 amount) returns (bool)",
+      "function decimals() view returns (uint8)"
+    ];
+
+    async function interactWithToken(tokenAddress) {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+
+      // Create contract instance
+      const contract = new ethers.Contract(
+        tokenAddress,
+        ERC20_ABI,
+        signer
+      );
+
+      // Read balance
+      const address = await signer.getAddress();
+      const balance = await contract.balanceOf(address);
+      const decimals = await contract.decimals();
+      console.log('Balance:', ethers.formatUnits(balance, decimals));
+
+      // Transfer tokens
+      const tx = await contract.transfer(
+        '0xRecipientAddress',
+        ethers.parseUnits('10', decimals)
+      );
+
+      console.log('Transaction sent:', tx.hash);
+      const receipt = await tx.wait();
+      console.log('Transfer confirmed:', receipt.hash);
+
+      return receipt;
+    }
+
+    // Usage
+    await interactWithToken('0xTokenAddress');
+    ```
+  </Tab>
+</Tabs>
+
+## Event Listening
+
+<Tabs>
+  <Tab title="wagmi">
+    ### Listen to Contract Events
+    
+    ```typescript useTokenTransfers.ts
+    import { useWatchContractEvent } from 'wagmi'
+    import { useState } from 'react'
+
+    const ERC20_ABI = [
+      {
+        name: 'Transfer',
+        type: 'event',
+        inputs: [
+          { indexed: true, name: 'from', type: 'address' },
+          { indexed: true, name: 'to', type: 'address' },
+          { indexed: false, name: 'value', type: 'uint256' }
+        ],
+      },
+    ] as const
+
+    export function useTokenTransfers(tokenAddress: string) {
+      const [transfers, setTransfers] = useState<any[]>([])
+
+      useWatchContractEvent({
+        address: tokenAddress as `0x${string}`,
+        abi: ERC20_ABI,
+        eventName: 'Transfer',
+        onLogs(logs) {
+          setTransfers(prev => [...prev, ...logs])
+        },
+      })
+
+      return transfers
+    }
+    ```
+  </Tab>
+
+  <Tab title="ethers.js">
+    ### Listen with ethers.js
+    
+    ```javascript
+    import { ethers } from 'ethers';
+
+    async function listenToTransfers(tokenAddress) {
+      const provider = new ethers.JsonRpcProvider(
+        'https://public-rpc.paxeer.app/rpc'
+      );
+
+      const contract = new ethers.Contract(
+        tokenAddress,
+        ['event Transfer(address indexed from, address indexed to, uint256 value)'],
+        provider
+      );
+
+      // Listen to Transfer events
+      contract.on('Transfer', (from, to, value, event) => {
+        console.log('Transfer detected:');
+        console.log('From:', from);
+        console.log('To:', to);
+        console.log('Value:', ethers.formatEther(value));
+        console.log('Transaction:', event.log.transactionHash);
+      });
+
+      // Query past events
+      const filter = contract.filters.Transfer();
+      const events = await contract.queryFilter(filter, -10000);
+      
+      console.log('Recent transfers:', events.length);
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Complete dApp Example
+
+Here's a complete example of a token transfer dApp:
+
+```typescript App.tsx
+'use client'
+
+import { useState } from 'react'
+import { useAccount, useReadContract, useWriteContract } from 'wagmi'
+import { parseUnits, formatUnits } from 'viem'
+import { WalletConnect } from './WalletConnect'
+
+const TOKEN_ADDRESS = '0xYourTokenAddress'
+const ERC20_ABI = [
+  {
+    name: 'balanceOf',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: 'owner', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    name: 'transfer',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'to', type: 'address' },
+      { name: 'amount', type: 'uint256' }
+    ],
+    outputs: [{ name: '', type: 'bool' }],
+  },
+] as const
+
+export default function TokenTransferApp() {
+  const { address, isConnected } = useAccount()
+  const [recipient, setRecipient] = useState('')
+  const [amount, setAmount] = useState('')
+
+  const { data: balance } = useReadContract({
+    address: TOKEN_ADDRESS,
+    abi: ERC20_ABI,
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
+  })
+
+  const { writeContract, isPending } = useWriteContract()
+
+  const handleTransfer = () => {
+    if (!recipient || !amount) return
+    
+    writeContract({
+      address: TOKEN_ADDRESS,
+      abi: ERC20_ABI,
+      functionName: 'transfer',
+      args: [recipient as `0x${string}`, parseUnits(amount, 18)],
+    })
+  }
+
+  if (!isConnected) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <WalletConnect />
+      </div>
+    )
+  }
+
+  return (
+    <div className="container mx-auto p-4 max-w-md">
+      <h1 className="text-2xl font-bold mb-4">Token Transfer</h1>
+      
+      <div className="bg-gray-100 p-4 rounded-lg mb-4">
+        <p className="text-sm text-gray-600">Your Balance</p>
+        <p className="text-2xl font-bold">
+          {balance ? formatUnits(balance, 18) : '0'} tokens
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            Recipient Address
+          </label>
+          <input
+            type="text"
+            value={recipient}
+            onChange={(e) => setRecipient(e.target.value)}
+            placeholder="0x..."
+            className="w-full p-2 border rounded"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            Amount
+          </label>
+          <input
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="0.0"
+            className="w-full p-2 border rounded"
+          />
+        </div>
+
+        <button
+          onClick={handleTransfer}
+          disabled={isPending || !recipient || !amount}
+          className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 disabled:bg-gray-300"
+        >
+          {isPending ? 'Transferring...' : 'Transfer Tokens'}
+        </button>
+      </div>
+    </div>
+  )
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Error Handling" icon="triangle-exclamation">
+    Always handle errors gracefully:
+    
+    ```typescript
+    try {
+      const tx = await writeContract({...});
+      await tx.wait();
+    } catch (error) {
+      if (error.code === 'ACTION_REJECTED') {
+        console.log('User rejected transaction');
+      } else if (error.code === 'INSUFFICIENT_FUNDS') {
+        console.log('Insufficient funds');
+      } else {
+        console.error('Transaction failed:', error);
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Loading States" icon="spinner">
+    Show loading states for better UX:
+    
+    ```typescript
+    const { isPending, isLoading, isSuccess } = useWriteContract();
+
+    if (isPending) return <div>Confirm in wallet...</div>;
+    if (isLoading) return <div>Transaction pending...</div>;
+    if (isSuccess) return <div>Success!</div>;
+    ```
+  </Accordion>
+
+  <Accordion title="Gas Estimation" icon="gas-pump">
+    Estimate gas before transactions:
+    
+    ```javascript
+    const gasEstimate = await contract.transfer.estimateGas(
+      toAddress,
+      amount
+    );
+    
+    const gasLimit = gasEstimate * 120n / 100n; // 20% buffer
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Configuration"
+    icon="gear"
+    href="/configuration"
+  >
+    Set up your development environment
+  </Card>
+  <Card
+    title="Smart Contracts"
+    icon="code"
+    href="/contracts"
+  >
+    Deploy your own contracts
+  </Card>
+  <Card
+    title="API Reference"
+    icon="book"
+    href="/api-reference"
+  >
+    Explore all available methods
+  </Card>
+  <Card
+    title="Tools"
+    icon="toolbox"
+    href="/tools"
+  >
+    Discover development tools
+  </Card>
+</CardGroup>
+

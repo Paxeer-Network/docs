@@ -1,0 +1,162 @@
+---
+title: LaunchPad GraphQL
+description: GraphQL schema for the Paxeer LaunchPad indexer.
+---
+
+# LaunchPad GraphQL Schema
+
+GraphQL schema for the LaunchPad indexer — bonding curve markets, swaps, transfers, holders, and candle data.
+
+**Endpoint:** `https://launchpad-indexer-production.up.railway.app/graphql`
+
+## Schema
+
+```graphql
+type Market {
+  id: Int!
+  poolAddress: String!
+  tokenAddress: String!
+  nftId: Int!
+  creator: String!
+  name: String!
+  symbol: String!
+  metadata: JSON
+  metadataImageUrl: String
+  virtualReserveUSD: String!
+  realReserveUSD: String!
+  reserveToken: String!
+  spotPrice: String!
+  marketCap: String!
+  volume24h: String!
+  volumeTotal: String!
+  trades24h: Int!
+  tradesTotal: Int!
+  feeStrategy: Int!
+  volatility: Int!
+  holders: Int!
+  createdAtBlock: Int!
+  createdAt: String!
+  updatedAt: String!
+}
+
+type Swap {
+  id: Int!
+  txHash: String!
+  poolAddress: String!
+  sender: String!
+  stablecoinIn: String
+  stablecoinOut: String
+  tokenIn: String!
+  tokenOut: String!
+  amountIn: String!
+  amountOut: String!
+  feeAmount: String!
+  reserveUsdAfter: String!
+  reserveTokenAfter: String!
+  priceUsd: String!
+  blockNumber: Int!
+  timestamp: String!
+}
+
+type TokenTransfer {
+  id: Int!
+  txHash: String!
+  tokenAddress: String!
+  fromAddress: String!
+  toAddress: String!
+  amount: String!
+  blockNumber: Int!
+  timestamp: String!
+}
+
+type FeeClaim {
+  id: Int!
+  txHash: String!
+  poolAddress: String
+  nftId: Int!
+  recipient: String!
+  amount: String!
+  blockNumber: Int!
+  timestamp: String!
+}
+
+type Holder {
+  holderAddress: String!
+  balance: String!
+  percentage: Float!
+}
+
+type Candle {
+  openTime: String!
+  open: String!
+  high: String!
+  low: String!
+  close: String!
+  volume: String!
+  trades: Int!
+}
+
+type TokenMetadata {
+  tokenAddress: String!
+  name: String!
+  symbol: String!
+  metadata: JSON
+  imageUrl: String
+  description: String
+  links: JSON
+}
+
+type VolatilitySnapshot {
+  volatility: Int!
+  blockNumber: Int!
+  timestamp: String!
+}
+
+type IndexerStatus {
+  lastBlock: Int!
+  headBlock: Int
+  lag: Int
+  marketsIndexed: Int!
+  totalSwaps: Int!
+  totalTransfers: Int!
+  uptime: String!
+}
+
+scalar JSON
+
+type Query {
+  markets(orderBy: MarketOrderBy, limit: Int, offset: Int): [Market!]!
+  market(poolAddress: String, tokenAddress: String, symbol: String): Market
+  marketsByCreator(creator: String!): [Market!]!
+  searchMarkets(query: String!): [Market!]!
+  trendingMarkets(limit: Int): [Market!]!
+  swaps(poolAddress: String!, limit: Int, offset: Int): [Swap!]!
+  swapsByUser(sender: String!, limit: Int, offset: Int): [Swap!]!
+  recentSwaps(limit: Int): [Swap!]!
+  tokenTransfers(tokenAddress: String!, limit: Int, offset: Int): [TokenTransfer!]!
+  transfersByAddress(address: String!, limit: Int, offset: Int): [TokenTransfer!]!
+  topHolders(tokenAddress: String!, limit: Int): [Holder!]!
+  holderCount(tokenAddress: String!): Int!
+  feeClaims(nftId: Int!, limit: Int): [FeeClaim!]!
+  candles(poolAddress: String!, interval: String!, limit: Int): [Candle!]!
+  tokenMetadata(tokenAddress: String!): TokenMetadata
+  volatilityHistory(poolAddress: String!, limit: Int): [VolatilitySnapshot!]!
+  indexerStatus: IndexerStatus!
+}
+
+enum MarketOrderBy {
+  MARKET_CAP_DESC
+  MARKET_CAP_ASC
+  VOLUME_DESC
+  CREATED_DESC
+  CREATED_ASC
+  PRICE_DESC
+  HOLDERS_DESC
+}
+
+type Subscription {
+  marketUpdated(poolAddress: String): Market
+  newSwap(poolAddress: String): Swap
+  newMarket: Market
+}
+```

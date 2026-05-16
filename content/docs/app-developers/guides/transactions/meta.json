@@ -1,0 +1,10 @@
+{
+  "title": "Transactions",
+  "pages": [
+    "fees",
+    "estimates",
+    "parameters",
+    "statuses",
+    "troubleshooting"
+  ]
+}

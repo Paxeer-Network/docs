@@ -1,0 +1,188 @@
+---
+title: "PaxSpot"
+description: "On-chain spot trading system with oracle-relative orders, dual-mode matching, and capital-integrated execution"
+icon: "chart-mixed"
+---
+
+## Overview
+
+PaxSpot is a spot exchange built entirely in the EVM layer of HyperPaxeer. It introduces six novel primitives that exploit chain-level advantages — custom precompiles, validator-integrated keepers, and native gas policy — to deliver execution quality that no protocol on a shared chain can match.
+
+<CardGroup cols={3}>
+  <Card title="Oracle-Relative Orders" icon="crosshairs">
+    Orders stored as basis-point offsets from oracle price, not absolute prices
+  </Card>
+  <Card title="Dual-Mode Matching" icon="arrows-rotate">
+    Continuous in calm markets, sealed-bid batch auctions under volatility
+  </Card>
+  <Card title="Capital-Integrated" icon="vault">
+    Funded smart wallets trade as first-class participants via Argus VM
+  </Card>
+</CardGroup>
+
+---
+
+## Six Primitives
+
+### 1. Oracle-Relative Order Book (OROB)
+
+All orders and liquidity positions are stored as **basis-point offsets from the oracle price**, not absolute prices. A limit buy at "anchor - 5 bps" automatically follows the market.
+
+```
+Traditional:    BUY 1 ETH @ $3,842.50   (stale in seconds)
+OROB:           BUY 1 ETH @ anchor - 5 bps  (always relative, auto-tracks)
+```
+
+- State compression: orders do not need repricing when the market moves
+- Fills outside configurable oracle bands are rejected (anti-manipulation)
+- LP positions track the market without active management
+- Resolution computed by **precompile `0x901`** (OROBResolver) — near-zero gas
+
+### 2. Adaptive Dual-Mode Execution
+
+The protocol dynamically switches matching mode per market based on conditions:
+
+| Condition | Mode | Benefit |
+|-----------|------|---------|
+| Normal / low volatility | **Continuous** — orders fill within the block they arrive | Fast UX, tight spreads |
+| High volatility / anomalous flow | **Sealed-bid batch auction** — uniform clearing price per block | MEV-immune, fair execution |
+
+Trigger logic (on-chain, per market):
+- Oracle confidence interval exceeds threshold
+- Block volume > 3 sigma of rolling 50-block average
+- Governance-configurable sensitivity
+
+Batch clearing price computed by **precompile `0x902`** (BatchClearing).
+
+### 3. Programmable Liquidity Vaults (PLVs)
+
+Composable strategy vaults that implement a standard interface:
+
+```solidity
+interface ILiquidityVault {
+    function quote(Side side, uint256 size, int256 oraclePrice, uint256 volatility)
+        external view returns (int256 price, uint256 maxFillSize);
+    function fill(Side side, uint256 size, int256 price) external returns (bool);
+    function rebalance(int256 oraclePrice, int256 inventorySkew) external;
+}
+```
+
+Building blocks: constant-product, concentrated-range, sigmoid, and linear base curves with volatility-scaling, inventory-skew, and momentum overlay modifiers. A factory contract lets anyone compose new strategies by parameter configuration alone.
+
+### 4. Proof-of-Fill-Quality (PoFQ)
+
+```
+fill_quality_score = 1 - |fill_price - oracle_price| / oracle_price
+```
+
+Every fill is scored against the oracle at execution time via **precompile `0x904`** (PoFQScorer). Vaults accumulate a rolling quality score on-chain. Higher score yields higher fee share, priority routing, and increased capital allocation from the Argus risk engine.
+
+### 5. Lazy Netting Settlement
+
+```
+[Trade Execution] → [Virtual Balance Update (same block)] → [Net Settlement (every N blocks)]
+```
+
+- Users trade against virtual balances updated in the same block
+- Every settlement epoch (~5 blocks / 10 s), the protocol computes net transfers across all participants
+- Gas reduction: 5–10x vs. per-trade settlement
+- **Fast-settle lane**: 1 bps premium for same-block finality
+
+### 6. Capital-Integrated Trading
+
+PaxSpot interfaces with the **Argus VM** for funded smart-wallet trading:
+
+```
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│   ARGUS VM   │────▶│ SMART WALLET │────▶│   HPXSPOT    │
+│  Risk engine │◀────│ Capital set  │◀────│ PoFQ score   │
+│  Allocation  │     │   by Argus   │     │ PnL feed     │
+│  Drawdown    │     │ Allowance    │     │ Volume data  │
+└──────────────┘     └──────────────┘     └──────────────┘
+```
+
+PaxSpot exposes `IPaxSpotReader` (PoFQ scores, PnL, positions) and enforces per-address limits via `IAllowanceProvider`. Funded wallets are indistinguishable from self-funded wallets at the matching-engine level.
+
+---
+
+## Contract Architecture
+
+PaxSpot is the exchange architecture layer for HyperPaxeer's spot markets. It relies on native precompiles for oracle-relative pricing, batch clearing, validator oracle aggregation, and fill-quality scoring.
+
+| Contract | Purpose |
+|----------|---------|
+| **PaxSpotRouter** | Order gateway — signature validation, rate limiting, funded-wallet allowance checks |
+| **MatchingEngine** | OROB continuous + batch matching via precompiles `0x901`, `0x902`, and `0x904` |
+| **SettlementEngine** | Virtual-balance ledger, epoch netting, fast-settle lane |
+| **OracleAdapter** | Pyth primary + Validator Oracle Module (VOM) fallback via precompile 0x903 |
+
+### Custom Precompiles
+
+| Address | Name | Type | Purpose |
+|---------|------|------|---------|
+| `0x0000000000000000000000000000000000000901` | OROBResolver | Stateless | Convert offset orders to absolute prices and back |
+| `0x0000000000000000000000000000000000000902` | BatchClearing | Stateless | Compute uniform clearing price for sealed-bid auctions |
+| `0x0000000000000000000000000000000000000903` | OracleAggregator / VOM | Mixed | Confidence-weighted median of validator-submitted prices (`x/paxoracle`) |
+| `0x0000000000000000000000000000000000000904` | PoFQScorer | Stateless | Score fill quality against oracle at execution time |
+
+See the [PaxSpot precompile reference](/paxspot/precompiles) for Solidity and TypeScript examples.
+
+---
+
+## Oracle Architecture
+
+PaxSpot uses a two-tier oracle with automatic fallback:
+
+1. **Primary — Pyth Network**: Sub-second pull-oracle with confidence intervals
+2. **Fallback — Validator Oracle Module (VOM)**: Validators submit prices via the `0x903` precompile (`submitPrice`). The `x/paxoracle` Cosmos SDK module aggregates submissions using a confidence-weighted median with staleness filtering (15-block threshold) and quorum enforcement.
+
+```solidity
+contract OracleAdapter {
+    function getPrice(bytes32 feedId) external view returns (int256 price, uint256 confidence) {
+        // Try Pyth first; fall back to VOM if stale or unavailable
+    }
+}
+```
+
+---
+
+## Test Results
+
+**155 unit tests, 0 failures, 95.73% line coverage** (Foundry, `vm.mockCall` for precompiles).
+
+| Contract | Lines | Branches | Functions |
+|----------|-------|----------|-----------|
+| MatchingEngine | 98.87% | 89.47% | 100% |
+| SettlementEngine | 98.06% | 100% | 94.74% |
+| PaxSpotRouter | 98.48% | 91.67% | 100% |
+| OracleAdapter | 96.25% | 83.33% | 100% |
+
+Local-chain integration tests (all passing):
+- Precompile 0x901 `resolveOffset` + `toOffset`
+- Precompile 0x902 `computeClearing`
+- Precompile 0x903 `submitPrice` + `getValidatorPrice` round-trip
+- Precompile 0x904 `scoreFill`
+- OracleAdapter `getPrice` (Pyth primary + VOM fallback)
+- MatchingEngine market creation + state query
+- PaxSpotRouter `submitOrder` end-to-end
+
+---
+
+## Resources
+
+<CardGroup cols={2}>
+  <Card
+    title="Spot Trading Design"
+    icon="book"
+    href="https://github.com/paxeer-network/hyperpaxeer"
+  >
+    Full technical specification
+  </Card>
+  <Card
+    title="Smart Contracts"
+    icon="code"
+    href="/contracts"
+  >
+    General deployment and verification guide
+  </Card>
+</CardGroup>
